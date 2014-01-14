@@ -294,6 +294,11 @@
 		2480DAB71884DE3B00074EAA /* English */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/Localizable.strings; sourceTree = "<group>"; };
 		2480DAB91884DE4600074EAA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		2480DABA1884DE4F00074EAA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = "zh-Hans"; path = "zh-Hans.lproj/MainMenu.xib"; sourceTree = "<group>"; };
+		2480DABB1884E60700074EAA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = "zh-Hans"; path = "zh-Hans.lproj/DiffRangeDialog.xib"; sourceTree = "<group>"; };
+		2480DABC1884E66900074EAA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = "zh-Hans"; path = "zh-Hans.lproj/DiffComputationBanner.xib"; sourceTree = "<group>"; };
+		2480DABE1884E6A500074EAA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = "zh-Hans"; path = "zh-Hans.lproj/FindReplaceBanner.xib"; sourceTree = "<group>"; };
+		2480DABF1884E6D500074EAA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = "zh-Hans"; path = "zh-Hans.lproj/JumpToOffsetBanner.xib"; sourceTree = "<group>"; };
+		2480DAC01884E6EA00074EAA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = "zh-Hans"; path = "zh-Hans.lproj/MoveSelectionByBanner.xib"; sourceTree = "<group>"; };
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = app/sources/main.m; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
@@ -1488,6 +1493,7 @@
 			isa = PBXVariantGroup;
 			children = (
 				D04A6B79100EA4BC00704963 /* English */,
+				2480DABE1884E6A500074EAA /* zh-Hans */,
 			);
 			name = FindReplaceBanner.xib;
 			sourceTree = "<group>";
@@ -1496,6 +1502,7 @@
 			isa = PBXVariantGroup;
 			children = (
 				D04A6B96100EA73800704963 /* English */,
+				2480DABF1884E6D500074EAA /* zh-Hans */,
 			);
 			name = JumpToOffsetBanner.xib;
 			sourceTree = "<group>";
@@ -1504,6 +1511,7 @@
 			isa = PBXVariantGroup;
 			children = (
 				D04A6B9D100EA75400704963 /* English */,
+				2480DAC01884E6EA00074EAA /* zh-Hans */,
 			);
 			name = MoveSelectionByBanner.xib;
 			sourceTree = "<group>";
@@ -1537,6 +1545,7 @@
 			isa = PBXVariantGroup;
 			children = (
 				D0B47FEE1272427B0095120E /* English */,
+				2480DABC1884E66900074EAA /* zh-Hans */,
 			);
 			name = DiffComputationBanner.xib;
 			sourceTree = "<group>";
@@ -1545,6 +1554,7 @@
 			isa = PBXVariantGroup;
 			children = (
 				D8C1F92B16F278BA00A4C36E /* English */,
+				2480DABB1884E60700074EAA /* zh-Hans */,
 			);
 			name = DiffRangeDialog.xib;
 			sourceTree = "<group>";
