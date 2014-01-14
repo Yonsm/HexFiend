@@ -66,10 +66,10 @@ static unsigned long long unsignedLongLongValue(NSString *s) {
 
 - (void)installDebuggingMenuItems:(NSMenu *)menu {
     [menu addItem:[NSMenuItem separatorItem]];
-    [menu addItemWithTitle:@"Show ByteArray" action:@selector(_showByteArray:) keyEquivalent:@"k"];
+    [menu addItemWithTitle:NSLocalizedString(@"Show ByteArray", @"显示字节数组") action:@selector(_showByteArray:) keyEquivalent:@"k"];
     [[[menu itemArray] lastObject] setKeyEquivalentModifierMask:NSCommandKeyMask];
-    [menu addItemWithTitle:@"Randomly Tweak ByteArray" action:@selector(_tweakByteArray:) keyEquivalent:@""];
-    [menu addItemWithTitle:@"Random ByteArray" action:@selector(_randomByteArray:) keyEquivalent:@""];
+    [menu addItemWithTitle:NSLocalizedString(@"Randomly Tweak ByteArray", @"随机修改字节数组") action:@selector(_tweakByteArray:) keyEquivalent:@""];
+    [menu addItemWithTitle:NSLocalizedString(@"Random ByteArray", @"随机字节数组") action:@selector(_randomByteArray:) keyEquivalent:@""];
     
 }
 
@@ -84,7 +84,7 @@ static NSString *promptForValue(NSString *promptText) {
 
 - (void)_randomByteArray:sender {
     USE(sender);
-    unsigned long long length = unsignedLongLongValue(promptForValue(@"How long?"));
+    unsigned long long length = unsignedLongLongValue(promptForValue(NSLocalizedString(@"How long?", @"多长？")));
     Class clsHFRandomDataByteSlice = NSClassFromString(@"HFRandomDataByteSlice");
     HFByteSlice *slice = [[clsHFRandomDataByteSlice alloc] initWithRandomDataLength:length];
     HFByteArray *array = [[HFBTreeByteArray alloc] init];
@@ -97,7 +97,7 @@ static NSString *promptForValue(NSString *promptText) {
 - (void)_tweakByteArray:sender {
     USE(sender);
     
-    unsigned tweakCount = [promptForValue(@"How many tweaks?") intValue];
+    unsigned tweakCount = [promptForValue(NSLocalizedString(@"How many tweaks?", @"修改多少？")) intValue];
     
     HFByteArray *byteArray = [[controller byteArray] mutableCopy];
     unsigned i;

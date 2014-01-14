@@ -183,7 +183,7 @@ static CFURLRef copyCharacterDevicePathForPossibleBlockDevice(NSURL *url)
 {
     NSError *result;
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    NSString *failureReason = NSLocalizedString(@"The file is busy.", @"文件正忙着呢。");
+    NSString *failureReason = NSLocalizedString(@"The file is busy.", @"杜甫很忙，文件也很忙。");
     NSString *descriptionFormatString = NSLocalizedString(@"The file at path '%@' could not be opened because it is busy.", @"不能打开文件 %@，因为它很忙：）");
     NSString *recoverySuggestionFormatString = NSLocalizedString(@"Do you want to open the corresponding character device at path '%@'?", @"您要打开路径 %@ 下的相应字符设备吗？");
     NSString *recoveryOption = NSLocalizedString(@"Open character device", @"打开字符设备");

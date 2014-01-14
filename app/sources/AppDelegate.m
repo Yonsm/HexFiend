@@ -30,7 +30,7 @@
     if (! [[NSUserDefaults standardUserDefaults] boolForKey:@"HFDebugMenu"]) {
         /* Remove the Debug menu unless we want it */
         NSMenu *mainMenu = [NSApp mainMenu];
-        NSInteger index = [mainMenu indexOfItemWithTitle:@"Debug"];
+        NSInteger index = [mainMenu indexOfItemWithTitle:NSLocalizedString(@"Debug", @"调试")];
         if (index != -1) [mainMenu removeItemAtIndex:index];
     }
 
@@ -117,12 +117,12 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
         if (docs) {
             NSString *firstTitle = [[docs objectAtIndex:0] displayName];
             NSString *secondTitle = [[docs objectAtIndex:1] displayName];
-            [item setTitle:[NSString stringWithFormat:@"Compare \u201C%@\u201D and \u201C%@\u201D", firstTitle, secondTitle]];
+            [item setTitle:[NSString stringWithFormat:NSLocalizedString(@"Compare \u201C%@\u201D and \u201C%@\u201D", @"比较 \u201C%@\u201D 和 \u201C%@\u201D"), firstTitle, secondTitle]];
             return YES;
         }
         else {
             /* Zero or one document, so give it a generic title and disable it */
-            [item setTitle:@"Compare Front Documents"];
+            [item setTitle:NSLocalizedString(@"Compare Front Documents", @"比较当前文档")];
             return NO;
         }
     } else if (sel == @selector(diffFrontDocumentsByRange:)) {
@@ -130,12 +130,12 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
         if (docs) {
             NSString *firstTitle = [[docs objectAtIndex:0] displayName];
             NSString *secondTitle = [[docs objectAtIndex:1] displayName];
-            [item setTitle:[NSString stringWithFormat:@"Compare Range of \u201C%@\u201D and \u201C%@\u201D", firstTitle, secondTitle]];
+            [item setTitle:[NSString stringWithFormat:NSLocalizedString(@"区域比较 \u201C%@\u201D 和 \u201C%@\u201D", @""), firstTitle, secondTitle]];
             return YES;
         }
         else {
             /* Zero or one document, so give it a generic title and disable it */
-            [item setTitle:@"Compare Range of Front Documents"];
+            [item setTitle:NSLocalizedString(@"Compare Range of Front Documents", @"区域比较当前文档")];
             return NO;
         }
     }
