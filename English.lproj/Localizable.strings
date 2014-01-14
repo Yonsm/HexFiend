@@ -1,0 +1,27 @@
+/*  **OVERWRITE MODE** */
+" **OVERWRITE MODE**" = " **OVERWRITE MODE**";
+
+/*  **READ-ONLY MODE** */
+" **READ-ONLY MODE**" = " **READ-ONLY MODE**";
+
+/* Cancel */
+"Cancel" = "Cancel";
+
+/* Do you want to open the corresponding character device at path '%@'? */
+"Do you want to open the corresponding character device at path '%@'?" = "Do you want to open the corresponding character device at path '%@'?";
+
+/* Open character device */
+"Open character device" = "Open character device";
+
+/* Remove Bookmark */
+"Remove Bookmark" = "Remove Bookmark";
+
+/* Remove Bookmark %ld */
+"Remove Bookmark %ld" = "Remove Bookmark %ld";
+
+/* The file at path '%@' could not be opened because it is busy. */
+"The file at path '%@' could not be opened because it is busy." = "The file at path '%@' could not be opened because it is busy.";
+
+/* The file is busy. */
+"The file is busy." = "The file is busy.";
+

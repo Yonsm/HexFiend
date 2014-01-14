@@ -183,11 +183,11 @@ static CFURLRef copyCharacterDevicePathForPossibleBlockDevice(NSURL *url)
 {
     NSError *result;
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    NSString *failureReason = NSLocalizedString(@"The file is busy.", @"Failure reason for opening a file that's busy");
-    NSString *descriptionFormatString = NSLocalizedString(@"The file at path '%@' could not be opened because it is busy.", @"Error description for opening a file that's busy");
-    NSString *recoverySuggestionFormatString = NSLocalizedString(@"Do you want to open the corresponding character device at path '%@'?", @"Recovery suggestion for opening a character device at a given path");
-    NSString *recoveryOption = NSLocalizedString(@"Open character device", @"Recovery option for opening a character device at a given path");
-    NSString *cancel = NSLocalizedString(@"Cancel", @"Cancel");
+    NSString *failureReason = NSLocalizedString(@"The file is busy.", @"文件正忙着呢。");
+    NSString *descriptionFormatString = NSLocalizedString(@"The file at path '%@' could not be opened because it is busy.", @"不能打开文件 %@，因为它很忙：）");
+    NSString *recoverySuggestionFormatString = NSLocalizedString(@"Do you want to open the corresponding character device at path '%@'?", @"您要打开路径 %@ 下的相应字符设备吗？");
+    NSString *recoveryOption = NSLocalizedString(@"Open character device", @"打开字符设备");
+    NSString *cancel = NSLocalizedString(@"Cancel", @"取消");
     
     NSString *description = [NSString stringWithFormat:descriptionFormatString, [url path]];
     NSString *recoverySuggestion = [NSString stringWithFormat:recoverySuggestionFormatString, [newURL path]];

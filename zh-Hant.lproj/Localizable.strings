@@ -1,0 +1,27 @@
+/*  **OVERWRITE MODE** */
+" **OVERWRITE MODE**" = " **覆蓋模式**";
+
+/*  **READ-ONLY MODE** */
+" **READ-ONLY MODE**" = " **只讀模式**";
+
+/* Cancel */
+"Cancel" = "取消";
+
+/* Do you want to open the corresponding character device at path '%@'? */
+"Do you want to open the corresponding character device at path '%@'?" = "您要打開路徑 %@ 下的相應字符設備嗎？";
+
+/* Open character device */
+"Open character device" = "打開字符設備";
+
+/* Remove Bookmark */
+"Remove Bookmark" = "移除書簽";
+
+/* Remove Bookmark %ld */
+"Remove Bookmark %ld" = "移除書簽 %ld";
+
+/* The file at path '%@' could not be opened because it is busy. */
+"The file at path '%@' could not be opened because it is busy." = "不能打開文件 %@，因為它很忙：）";
+
+/* The file is busy. */
+"The file is busy." = "文件正忙著呢。";
+

@@ -263,10 +263,10 @@ static inline Class preferredByteArrayClass(void) {
     case HFInsertMode:
         break;
     case HFOverwriteMode:
-        [result appendString:NSLocalizedString(@" **OVERWRITE MODE**", @"Title Suffix")];
+        [result appendString:NSLocalizedString(@" **OVERWRITE MODE**", @" **覆盖模式**")];
         break;
     case HFReadOnlyMode:
-        [result appendString:NSLocalizedString(@" **READ-ONLY MODE**", @"Title Suffix")];
+        [result appendString:NSLocalizedString(@" **READ-ONLY MODE**", @" **只读模式**")];
         break;
     }
 
@@ -857,10 +857,10 @@ static inline Class preferredByteArrayClass(void) {
         NSInteger selectedBookmark = [self selectedBookmark];
         NSString *newTitle;
         if (selectedBookmark == NSNotFound) {
-            newTitle = NSLocalizedString(@"Remove Bookmark", @"Menu item title for remove bookmark");
+            newTitle = NSLocalizedString(@"Remove Bookmark", @"移除书签");
         }
         else {
-            newTitle = [NSString stringWithFormat:NSLocalizedString(@"Remove Bookmark %ld", @"Menu item title for removing a particular bookmark"), selectedBookmark];
+            newTitle = [NSString stringWithFormat:NSLocalizedString(@"Remove Bookmark %ld", @"移除书签 %ld"), selectedBookmark];
         }
         [item setTitle:newTitle];
         return selectedBookmark != NSNotFound;
