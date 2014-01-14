@@ -8,3 +8,6 @@ Hex Fiend is released under a liberal BSD-style [license](./License.txt).
 * API documentation, see [ridiculousfish.com/hexfiend/docs/](http://ridiculousfish.com/hexfiend/docs/)
 * Information about Hex Fiend, see [ridiculousfish.com/hexfiend/](http://ridiculousfish.com/hexfiend/)
 
+Yonsm 的修改：
+* 默认打开文件启用覆盖模式
+* 代码中原生多语言支持，是所有GenString自动生成简体中文语言文件。
