@@ -22,6 +22,7 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		2480DAB41884DBAD00074EAA /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 2480DAB21884DBAD00074EAA /* MainMenu.xib */; };
 		795F46C114BAA45D00EB2F7D /* OpenDriveWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 795F46C014BAA45D00EB2F7D /* OpenDriveWindowController.m */; };
 		795F46C314BAADB600EB2F7D /* DiskArbitration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 795F46C214BAADB600EB2F7D /* DiskArbitration.framework */; };
 		795F46C514BAAEFB00EB2F7D /* OpenDriveDialog.xib in Resources */ = {isa = PBXBuildFile; fileRef = 795F46C414BAAEFB00EB2F7D /* OpenDriveDialog.xib */; };
@@ -289,6 +290,7 @@
 /* Begin PBXFileReference section */
 		089C165DFE840E0CC02AAC07 /* English */ = {isa = PBXFileReference; fileEncoding = 10; lastKnownFileType = text.plist.strings; name = English; path = English.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
+		2480DAB31884DBAD00074EAA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = "zh-Hans"; path = MainMenu.xib; sourceTree = "<group>"; };
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = main.m; path = app/sources/main.m; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
@@ -568,6 +570,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		2480DAB11884DBAD00074EAA /* zh-Hans.lproj */ = {
+			isa = PBXGroup;
+			children = (
+				2480DAB21884DBAD00074EAA /* MainMenu.xib */,
+			);
+			path = "zh-Hans.lproj";
+			sourceTree = "<group>";
+		};
 		29B97314FDCFA39411CA2CEA /* HexFiend_2 */ = {
 			isa = PBXGroup;
 			children = (
@@ -588,6 +598,7 @@
 		29B97317FDCFA39411CA2CEA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				2480DAB11884DBAD00074EAA /* zh-Hans.lproj */,
 				79E2FF1F1745A2B300FA8F12 /* dsa_pub.pem */,
 				795F46C414BAAEFB00EB2F7D /* OpenDriveDialog.xib */,
 				D024AFB20E349A7B00F39EBB /* hex_icon.icns */,
@@ -1202,6 +1213,7 @@
 				French,
 				German,
 				en,
+				"zh-Hans",
 			);
 			mainGroup = 29B97314FDCFA39411CA2CEA /* HexFiend_2 */;
 			projectDirPath = "";
@@ -1239,6 +1251,7 @@
 				795F46C514BAAEFB00EB2F7D /* OpenDriveDialog.xib in Resources */,
 				D8C1F92C16F278BA00A4C36E /* DiffRangeDialog.xib in Resources */,
 				79E2FF201745A2B300FA8F12 /* dsa_pub.pem in Resources */,
+				2480DAB41884DBAD00074EAA /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1440,6 +1453,14 @@
 				089C165DFE840E0CC02AAC07 /* English */,
 			);
 			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		2480DAB21884DBAD00074EAA /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				2480DAB31884DBAD00074EAA /* zh-Hans */,
+			);
+			name = MainMenu.xib;
 			sourceTree = "<group>";
 		};
 		D00C166F0FF4925A006D021F /* InfoPlist.strings */ = {
