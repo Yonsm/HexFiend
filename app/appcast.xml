@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"  xmlns:dc="http://purl.org/dc/elements/1.1/">
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
 	<channel>
 		<title>HexFiend</title>
 		<link>https://raw.github.com/ridiculousfish/HexFiend/master/app/appcast.xml</link>
 		<description>HexFiend 2 Release Notes</description>
 		<language>en</language>
 		<item>
-			<title>HexFiend 2.2</title>
-			<sparkle:releaseNotesLink>
-				http://www.ridiculousfish.com/hexfiend/ReleaseNotes.html
-			</sparkle:releaseNotesLink>
-			<pubDate>Wed, 15 Jan 2013 12:00:00 +0800</pubDate>
-			<enclosure url="http://ridiculousfish.com/hexfiend/files/HexFiend.zip" sparkle:version="200" sparkle:shortVersionString="2.2" length="1986688" type="application/octet-stream" sparkle:dsaSignature="MCwCFG4GyOASB/dlAoyN0Pketk7hXeUKAhRRpoRLHlm0kiyBUezq8AaydKfz+g==" />
+			<title>HexFiend 2.8</title>
+			<sparkle:releaseNotesLink>https://ridiculousfish.github.io/HexFiend/ReleaseNotes.html</sparkle:releaseNotesLink>
+			<enclosure
+				url="https://github.com/ridiculousfish/HexFiend/releases/download/v2.8.0/Hex_Fiend_2.8.dmg"
+				sparkle:version="170719"
+				sparkle:shortVersionString="2.8"
+				sparkle:dsaSignature="MCwCFAumBhb7Bq74AQ0QAAtxzT0uHUs3AhQUH2IxG5aFVRS9gS9aUU+3hCKdiw=="
+			/>
+			<sparkle:minimumSystemVersion>10.7</sparkle:minimumSystemVersion>
 		</item>
 	</channel>
 </rss>

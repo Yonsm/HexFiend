@@ -11,21 +11,21 @@
 
 @implementation HFByteArray
 
-- (id)init {
+- (instancetype)init {
     if ([self class] == [HFByteArray class]) {
         [NSException raise:NSInvalidArgumentException format:@"init sent to HFByteArray, but HFByteArray is an abstract class.  Instantiate one of its subclasses instead, like HFBTreeByteArray."];
     }
     return [super init];
 }
 
-- (id)initWithByteSlice:(HFByteSlice *)slice {
+- (instancetype)initWithByteSlice:(HFByteSlice *)slice {
     if(!(self = [self init])) return nil;
     self = [self init];
     [self insertByteSlice:slice inRange:HFRangeMake(0, 0)];
     return self;
 }
 
-- (id)initWithByteArray:(HFByteArray *)array {
+- (instancetype)initWithByteArray:(HFByteArray *)array {
     if(!(self = [self init])) return nil;
     NSEnumerator *e = [array byteSliceEnumerator];
     HFByteSlice *slice;
@@ -91,19 +91,18 @@
 
 - (id)mutableCopyWithZone:(NSZone *)zone {
     USE(zone);
-    return [[self subarrayWithRange:HFRangeMake(0, [self length])] retain];
+    return [self subarrayWithRange:HFRangeMake(0, [self length])];
 }
 
 - (id)copyWithZone:(NSZone *)zone {
     USE(zone);
-    return [[self subarrayWithRange:HFRangeMake(0, [self length])] retain];
+    return [self subarrayWithRange:HFRangeMake(0, [self length])];
 }
 
 - (void)deleteBytesInRange:(HFRange)lrange {
     [self incrementGenerationOrRaiseIfLockedForSelector:_cmd];
     HFByteSlice* slice = [[HFFullMemoryByteSlice alloc] initWithData:[NSData data]];
     [self insertByteSlice:slice inRange:lrange];
-    [slice release];
 }
 
 - (BOOL)isEqual:v {
@@ -191,9 +190,7 @@
     HFByteArray *byteArray = [[NSClassFromString(@"HFFullMemoryByteArray") alloc] init];
     HFByteSlice *byteSlice = [[HFFullMemoryByteSlice alloc] initWithData:val];
     [byteArray insertByteSlice:byteSlice inRange:HFRangeMake(0, 0)];
-    [byteSlice release];
     BOOL result = [self _debugIsEqual:byteArray];
-    [byteArray release];
     return result;
 }
 

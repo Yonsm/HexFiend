@@ -10,23 +10,19 @@
 
 @implementation HFFindReplaceOperationView
 
-- (id)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame {
     self = [super initWithFrame:frame];
     fieldTypeIsASCII = 	[[NSUserDefaults standardUserDefaults] boolForKey:@"FindPrefersASCII"];
     return self;
 }
 
 - (void)setFindField:(HFTextField *)field {
-    [field retain];
-    [findField release];
     findField = field;
     [findField setUsesHexArea: ! fieldTypeIsASCII];
     [findField setUsesTextArea: fieldTypeIsASCII];
 }
 
 - (void)setReplaceField:(HFTextField *)field {
-    [field retain];
-    [replaceField release];
     replaceField = field;
     [replaceField setUsesHexArea: ! fieldTypeIsASCII];
     [replaceField setUsesTextArea: fieldTypeIsASCII];
@@ -116,7 +112,6 @@
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [self removeObserver:self forKeyPath:@"operationIsRunning"];
-    [super dealloc];
 }
 
 @end

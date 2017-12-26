@@ -14,7 +14,7 @@
 
 @implementation HFSharedMemoryByteSlice
 
-- (id)initWithUnsharedData:(NSData *)unsharedData {
+- (instancetype)initWithUnsharedData:(NSData *)unsharedData {
     self = [super init];
     REQUIRE_NOT_NULL(unsharedData);
     NSUInteger dataLength = [unsharedData length];
@@ -33,23 +33,23 @@
 }
 
 // retains, does not copy
-- (id)initWithData:(NSMutableData *)dat {
+- (instancetype)initWithData:(NSMutableData *)dat {
     REQUIRE_NOT_NULL(dat);
     return [self initWithData:dat offset:0 length:[dat length]];
 }
 
-- (id)initWithData:(NSMutableData *)dat offset:(NSUInteger)off length:(NSUInteger)len {
+- (instancetype)initWithData:(NSMutableData *)dat offset:(NSUInteger)off length:(NSUInteger)len {
     self = [super init];
     REQUIRE_NOT_NULL(dat);
     HFASSERT(off + len >= off); //check for overflow
     HFASSERT(off + len <= [dat length]);
     offset = off;
     length = len;
-    data = [dat retain];
+    data = dat;
     return self;
 }
 
-- (id)initWithSharedData:(NSMutableData *)dat offset:(NSUInteger)off length:(NSUInteger)len tail:(const void *)tail tailLength:(NSUInteger)tailLen {
+- (instancetype)initWithSharedData:(NSMutableData *)dat offset:(NSUInteger)off length:(NSUInteger)len tail:(const void *)tail tailLength:(NSUInteger)tailLen {
     self = [super init];
     if (off || len) REQUIRE_NOT_NULL(dat);
     if (tailLen) REQUIRE_NOT_NULL(tail);
@@ -58,7 +58,7 @@
     HFASSERT(off + len <= [dat length]);
     offset = off;
     length = len;
-    data = [dat retain];
+    data = dat;
     HFASSERT(tailLen <= UCHAR_MAX);
     inlineTailLength = (unsigned char)tailLen;
     memcpy(inlineTail, tail, tailLen);
@@ -66,16 +66,11 @@
     return self;
 }
 
-- (void)dealloc {
-    [data release];
-    [super dealloc];
-}
-
 - (unsigned long long)length {
     return length + inlineTailLength;
 }
 
-- (void)copyBytes:(unsigned char *)dst range:(HFRange)lrange  {
+- (void)copyBytes:(unsigned char *)dst range:(HFRange)lrange {
     HFASSERT(HFSum(length, inlineTailLength) >= HFMaxRange(lrange));
     NSRange requestedRange = NSMakeRange(ll2l(lrange.location), ll2l(lrange.length));
     NSRange dataRange = NSMakeRange(0, length);
@@ -97,7 +92,7 @@
 }
 
 - (HFByteSlice *)subsliceWithRange:(HFRange)lrange {
-    if (HFRangeEqualsRange(lrange, HFRangeMake(0, HFSum(length, inlineTailLength)))) return [[self retain] autorelease];
+    if (HFRangeEqualsRange(lrange, HFRangeMake(0, HFSum(length, inlineTailLength)))) return self;
     
     HFByteSlice *result;
     HFASSERT(lrange.length > 0);
@@ -127,7 +122,7 @@
         HFASSERT(tail >= inlineTail && tail + tailLength <= inlineTail + inlineTailLength);
     }
     HFASSERT(resultLength + tailLength == lrange.length);
-    result = [[[[self class] alloc] initWithSharedData:resultData offset:resultOffset length:resultLength tail:tail tailLength:tailLength] autorelease];
+    result = [[[self class] alloc] initWithSharedData:resultData offset:resultOffset length:resultLength tail:tail tailLength:tailLength];
     HFASSERT([result length] == lrange.length);
     return result;
 }
@@ -148,7 +143,7 @@
         unsigned char newTail[MAX_TAIL_LENGTH];
         memcpy(newTail, inlineTail, inlineTailLength);
         [slice copyBytes:newTail + inlineTailLength range:HFRangeMake(0, sliceLength)];
-        HFByteSlice *result = [[[[self class] alloc] initWithSharedData:data offset:offset length:length tail:newTail tailLength:newTailLength] autorelease];
+        HFByteSlice *result = [[[self class] alloc] initWithSharedData:data offset:offset length:length tail:newTail tailLength:newTailLength];
         HFASSERT([result length] == HFSum(sliceLength, thisLength));
         return result;
     }
@@ -162,7 +157,7 @@
                 NSUInteger newDataLength = length;
                 unsigned char newDataTail[MAX_TAIL_LENGTH];
                 unsigned char newDataTailLength = MAX_TAIL_LENGTH;
-                NSMutableData *newData = (data ? data : [[[NSMutableData alloc] init] autorelease]);
+                NSMutableData *newData = (data ? data : [[NSMutableData alloc] init]);
                 
                 NSUInteger sliceLengthInt = ll2l(sliceLength);
                 NSUInteger newTotalTailLength = sliceLengthInt + inlineTailLength;
@@ -197,7 +192,7 @@
                     memcpy(newDataTail, inlineTail + inlineTailLength - amountOfTailFromSelf, amountOfTailFromSelf);
                 }
                 
-                HFByteSlice *result = [[[[self class] alloc] initWithSharedData:newData offset:newDataOffset length:newDataLength tail:newDataTail tailLength:newDataTailLength] autorelease];
+                HFByteSlice *result = [[[self class] alloc] initWithSharedData:newData offset:newDataOffset length:newDataLength tail:newDataTail tailLength:newDataTailLength];
                 HFASSERT([result length] == HFSum([slice length], [self length]));
                 return result;
             }

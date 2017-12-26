@@ -1,41 +1,7 @@
 #import <HexFiend/HFFunctions.h>
 #import <HexFiend/HFController.h>
 
-#ifndef NDEBUG
-//#define USE_CHUD 1
-#endif
-
-#ifndef USE_CHUD
-#define USE_CHUD 0
-#endif
-
-#if USE_CHUD
-#import <CHUD/CHUD.h>
-#endif
-
-NSImage *HFImageNamed(NSString *name) {
-    HFASSERT(name != NULL);
-    NSImage *image = [NSImage imageNamed:name];
-    if (image == NULL) {
-        NSString *imagePath = [[NSBundle bundleForClass:[HFController class]] pathForResource:name ofType:@"tiff"];
-        if (! imagePath) {
-            NSLog(@"Unable to find image named %@.tiff", name);
-        }
-        else {
-            image = [[NSImage alloc] initByReferencingFile:imagePath];
-            if (image == nil || ! [image isValid]) {
-                NSLog(@"Couldn't load image at path %@", imagePath);
-                [image release];
-                image = nil;
-            }
-            else {
-                [image setName:name];
-                [image setScalesWhenResized:YES];
-            }
-        }
-    }
-    return image;
-}
+#import "HFFunctions_Private.h"
 
 @implementation HFRangeWrapper
 
@@ -44,17 +10,14 @@ NSImage *HFImageNamed(NSString *name) {
 + (HFRangeWrapper *)withRange:(HFRange)range {
     HFRangeWrapper *result = [[self alloc] init];
     result->range = range;
-    return [result autorelease];
+    return result;
 }
 
 + (NSArray *)withRanges:(const HFRange *)ranges count:(NSUInteger)count {
     HFASSERT(count == 0 || ranges != NULL);
     NSUInteger i;
-    NSArray *result;
-    NEW_ARRAY(HFRangeWrapper *, wrappers, count);
-    for (i=0; i < count; i++) wrappers[i] = [self withRange:ranges[i]];
-    result = [NSArray arrayWithObjects:wrappers count:count];
-    FREE_ARRAY(wrappers);
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:count];
+    for (i=0; i < count; i++) [result addObject:[self withRange:ranges[i]]];
     return result;
 }
 
@@ -69,7 +32,7 @@ NSImage *HFImageNamed(NSString *name) {
 
 - (id)copyWithZone:(NSZone *)zone {
     USE(zone);
-    return [self retain];
+    return self;
 }
 
 - (NSString *)description {
@@ -89,7 +52,7 @@ static int hfrange_compare(const void *ap, const void *bp) {
 + (NSArray *)organizeAndMergeRanges:(NSArray *)inputRanges {
     HFASSERT(inputRanges != NULL);
     NSUInteger leading = 0, trailing = 0, length = [inputRanges count];
-    if (length == 0) return [NSArray array];
+    if (length == 0) return @[];
     else if (length == 1) return [NSArray arrayWithArray:inputRanges];
     
     NEW_ARRAY(HFRange, ranges, length);
@@ -117,159 +80,468 @@ static int hfrange_compare(const void *ap, const void *bp) {
 + (void)getRanges:(HFRange *)ranges fromArray:(NSArray *)array {
     HFASSERT(ranges != NULL || [array count] == 0);
     if (ranges) {
-        FOREACH(HFRangeWrapper*, wrapper, array) *ranges++ = [wrapper HFRange];
+        for(HFRangeWrapper *wrapper in array) *ranges++ = [wrapper HFRange];
     }
 }
 
 @end
 
-BOOL HFStringEncodingIsSupersetOfASCII(NSStringEncoding encoding) {
-    switch (CFStringConvertNSStringEncodingToEncoding(encoding)) {
-	case kCFStringEncodingMacRoman: return YES;
-	case kCFStringEncodingWindowsLatin1: return YES;
-	case kCFStringEncodingISOLatin1: return YES;
-	case kCFStringEncodingNextStepLatin: return YES;
-	case kCFStringEncodingASCII: return YES;
-	case kCFStringEncodingUnicode: return NO;
-	case kCFStringEncodingUTF8: return YES;
-	case kCFStringEncodingNonLossyASCII: return NO;
-//	case kCFStringEncodingUTF16: return NO;
-	case kCFStringEncodingUTF16BE: return NO;
-	case kCFStringEncodingUTF16LE: return NO;
-	case kCFStringEncodingUTF32: return NO;
-	case kCFStringEncodingUTF32BE: return NO;
-	case kCFStringEncodingUTF32LE: return NO;
-	case kCFStringEncodingMacJapanese: return NO;
-	case kCFStringEncodingMacChineseTrad: return YES;
-	case kCFStringEncodingMacKorean: return YES;
-	case kCFStringEncodingMacArabic: return NO;
-	case kCFStringEncodingMacHebrew: return NO;
-	case kCFStringEncodingMacGreek: return YES;
-	case kCFStringEncodingMacCyrillic: return YES;
-	case kCFStringEncodingMacDevanagari: return YES;
-	case kCFStringEncodingMacGurmukhi: return YES;
-	case kCFStringEncodingMacGujarati: return YES;
-	case kCFStringEncodingMacOriya: return YES;
-	case kCFStringEncodingMacBengali: return YES;
-	case kCFStringEncodingMacTamil: return YES;
-	case kCFStringEncodingMacTelugu: return YES;
-	case kCFStringEncodingMacKannada: return YES;
-	case kCFStringEncodingMacMalayalam: return YES;
-	case kCFStringEncodingMacSinhalese: return YES;
-	case kCFStringEncodingMacBurmese: return YES;
-	case kCFStringEncodingMacKhmer: return YES;
-	case kCFStringEncodingMacThai: return YES;
-	case kCFStringEncodingMacLaotian: return YES;
-	case kCFStringEncodingMacGeorgian: return YES;
-	case kCFStringEncodingMacArmenian: return YES;
-	case kCFStringEncodingMacChineseSimp: return YES;
-	case kCFStringEncodingMacTibetan: return YES;
-	case kCFStringEncodingMacMongolian: return YES;
-	case kCFStringEncodingMacEthiopic: return YES;
-	case kCFStringEncodingMacCentralEurRoman: return YES;
-	case kCFStringEncodingMacVietnamese: return YES;
-	case kCFStringEncodingMacExtArabic: return YES;
-	case kCFStringEncodingMacSymbol: return NO;
-	case kCFStringEncodingMacDingbats: return NO;
-	case kCFStringEncodingMacTurkish: return YES;
-	case kCFStringEncodingMacCroatian: return YES;
-	case kCFStringEncodingMacIcelandic: return YES;
-	case kCFStringEncodingMacRomanian: return YES;
-	case kCFStringEncodingMacCeltic: return YES;
-	case kCFStringEncodingMacGaelic: return YES;
-	case kCFStringEncodingMacFarsi: return YES;
-	case kCFStringEncodingMacUkrainian: return NO;
-	case kCFStringEncodingMacInuit: return YES;
-	case kCFStringEncodingMacVT100: return YES;
-	case kCFStringEncodingMacHFS: return YES;
-	case kCFStringEncodingISOLatin2: return YES;
-	case kCFStringEncodingISOLatin3: return YES;
-	case kCFStringEncodingISOLatin4: return YES;
-	case kCFStringEncodingISOLatinCyrillic: return YES;
-	case kCFStringEncodingISOLatinArabic: return NO;
-	case kCFStringEncodingISOLatinGreek: return YES;
-	case kCFStringEncodingISOLatinHebrew: return YES;
-	case kCFStringEncodingISOLatin5: return YES;
-	case kCFStringEncodingISOLatin6: return YES;
-	case kCFStringEncodingISOLatinThai: return YES;
-	case kCFStringEncodingISOLatin7: return YES;
-	case kCFStringEncodingISOLatin8: return YES;
-	case kCFStringEncodingISOLatin9: return YES;
-	case kCFStringEncodingISOLatin10: return YES;
-	case kCFStringEncodingDOSLatinUS: return YES;
-	case kCFStringEncodingDOSGreek: return YES;
-	case kCFStringEncodingDOSBalticRim: return YES;
-	case kCFStringEncodingDOSLatin1: return YES;
-	case kCFStringEncodingDOSGreek1: return YES;
-	case kCFStringEncodingDOSLatin2: return YES;
-	case kCFStringEncodingDOSCyrillic: return YES;
-	case kCFStringEncodingDOSTurkish: return YES;
-	case kCFStringEncodingDOSPortuguese: return YES;
-	case kCFStringEncodingDOSIcelandic: return YES;
-	case kCFStringEncodingDOSHebrew: return YES;
-	case kCFStringEncodingDOSCanadianFrench: return YES;
-	case kCFStringEncodingDOSArabic: return YES;
-	case kCFStringEncodingDOSNordic: return YES;
-	case kCFStringEncodingDOSRussian: return YES;
-	case kCFStringEncodingDOSGreek2: return YES;
-	case kCFStringEncodingDOSThai: return YES;
-	case kCFStringEncodingDOSJapanese: return YES;
-	case kCFStringEncodingDOSChineseSimplif: return YES;
-	case kCFStringEncodingDOSKorean: return YES;
-	case kCFStringEncodingDOSChineseTrad: return YES;
-	case kCFStringEncodingWindowsLatin2: return YES;
-	case kCFStringEncodingWindowsCyrillic: return YES;
-	case kCFStringEncodingWindowsGreek: return YES;
-	case kCFStringEncodingWindowsLatin5: return YES;
-	case kCFStringEncodingWindowsHebrew: return YES;
-	case kCFStringEncodingWindowsArabic: return YES;
-	case kCFStringEncodingWindowsBalticRim: return YES;
-	case kCFStringEncodingWindowsVietnamese: return YES;
-	case kCFStringEncodingWindowsKoreanJohab: return YES;
-	case kCFStringEncodingANSEL: return NO;
-	case kCFStringEncodingJIS_X0201_76: return NO;
-	case kCFStringEncodingJIS_X0208_83: return NO;
-	case kCFStringEncodingJIS_X0208_90: return NO;
-	case kCFStringEncodingJIS_X0212_90: return NO;
-	case kCFStringEncodingJIS_C6226_78: return NO;
-	case 0x0628/*kCFStringEncodingShiftJIS_X0213*/: return NO;
-	case kCFStringEncodingShiftJIS_X0213_MenKuTen: return NO;
-	case kCFStringEncodingGB_2312_80: return NO;
-	case kCFStringEncodingGBK_95: return NO;
-	case kCFStringEncodingGB_18030_2000: return NO;
-	case kCFStringEncodingKSC_5601_87: return NO;
-	case kCFStringEncodingKSC_5601_92_Johab: return NO;
-	case kCFStringEncodingCNS_11643_92_P1: return NO;
-	case kCFStringEncodingCNS_11643_92_P2: return NO;
-	case kCFStringEncodingCNS_11643_92_P3: return NO;
-	case kCFStringEncodingISO_2022_JP: return NO;
-	case kCFStringEncodingISO_2022_JP_2: return NO;
-	case kCFStringEncodingISO_2022_JP_1: return NO;
-	case kCFStringEncodingISO_2022_JP_3: return NO;
-	case kCFStringEncodingISO_2022_CN: return NO;
-	case kCFStringEncodingISO_2022_CN_EXT: return NO;
-	case kCFStringEncodingISO_2022_KR: return NO;
-	case kCFStringEncodingEUC_JP: return YES;
-	case kCFStringEncodingEUC_CN: return YES;
-	case kCFStringEncodingEUC_TW: return YES;
-	case kCFStringEncodingEUC_KR: return YES;
-	case kCFStringEncodingShiftJIS: return NO;
-	case kCFStringEncodingKOI8_R: return YES;
-	case kCFStringEncodingBig5: return YES;
-	case kCFStringEncodingMacRomanLatin1: return YES;
-	case kCFStringEncodingHZ_GB_2312: return NO;
-	case kCFStringEncodingBig5_HKSCS_1999: return YES;
-	case kCFStringEncodingVISCII: return YES; // though not quite
-	case kCFStringEncodingKOI8_U: return YES;
-	case kCFStringEncodingBig5_E: return YES;
-	case kCFStringEncodingNextStepJapanese: return YES;
-	case kCFStringEncodingEBCDIC_US: return NO;
-	case kCFStringEncodingEBCDIC_CP037: return NO;
-        default:
-            NSLog(@"Unknown string encoding %lu in %s", (unsigned long)encoding, __FUNCTION__);
-            return NO;
+@implementation HFRangeSet
+// HFRangeSet is implemented as a CFMutableArray of uintptr_t "fenceposts". The array
+// is even in length, sorted, duplicate free, and considered to include the ranges
+// [array[0], array[1]), [array[2], array[3]), ..., [array[2n], array[2n+1])
+
+CFComparisonResult uintptrComparator(const void *val1, const void *val2, void *context) {
+    (void)context;
+    uintptr_t a = (uintptr_t)val1;
+    uintptr_t b = (uintptr_t)val2;
+    if(a < b) return kCFCompareLessThan;
+    if(a > b) return kCFCompareGreaterThan;
+    return kCFCompareEqualTo;
+}
+
+static void HFRangeSetAddRange(CFMutableArrayRef array, uintptr_t a, uintptr_t b) {
+    CFIndex count = CFArrayGetCount(array);
+    assert(a < b); assert(count % 2 == 0);
+    CFIndex idxa = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)a, uintptrComparator, NULL);
+    CFIndex idxb = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)b, uintptrComparator, NULL);
+
+    const void *x[2] = { (void*)a, (void*)b };
+    if(idxa >= count) {
+        CFArrayReplaceValues(array, CFRangeMake(count, 0), x, 2);
+        return;
+    }
+    if(idxb == 0) {
+        CFArrayReplaceValues(array, CFRangeMake(0, 0), x, 2);
+        return;
+    }
+
+    // Clear fenceposts strictly between 'a' and 'b', and then possibly
+    // add 'a' or 'b' as fenceposts.
+    CFIndex cutloc = (uintptr_t)CFArrayGetValueAtIndex(array, idxa) == a ? idxa+1 : idxa;
+    CFIndex cutlen = idxb - cutloc;
+    
+    bool inca = cutloc % 2 == 0; // Include 'a' if it would begin an included range
+    bool incb = (count - cutlen + inca) % 2 == 1; // The set must be even, which tells us about 'b'.
+    
+    CFArrayReplaceValues(array, CFRangeMake(cutloc, cutlen), x+inca, inca+incb);
+    assert(CFArrayGetCount(array) % 2 == 0);
+}
+
+static void HFRangeSetRemoveRange(CFMutableArrayRef array, uintptr_t a, uintptr_t b) {
+    CFIndex count = CFArrayGetCount(array);
+    assert(a < b); assert(count % 2 == 0);
+    CFIndex idxa = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)a, uintptrComparator, NULL);
+    CFIndex idxb = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)b, uintptrComparator, NULL);
+    if(idxa >= count || idxb == 0) return;
+
+    // Remove fenceposts strictly between 'a' and 'b', and then possibly
+    // add 'a' or 'b' as fenceposts.
+    CFIndex cutloc = (uintptr_t)CFArrayGetValueAtIndex(array, idxa) == a ? idxa+1 : idxa;
+    CFIndex cutlen = idxb - cutloc;
+    
+    bool inca = cutloc % 2 == 1; // Include 'a' if it would end an included range
+    bool incb = (count - cutlen + inca) % 2 == 1; // The set must be even, which tells us about 'b'.
+    
+    const void *x[2] = { (void*)a, (void*)b };
+    CFArrayReplaceValues(array, CFRangeMake(cutloc, cutlen), x+inca, inca+incb);
+    assert(CFArrayGetCount(array) % 2 == 0);
+}
+
+static void HFRangeSetToggleRange(CFMutableArrayRef array, uintptr_t a, uintptr_t b) {
+    CFIndex count = CFArrayGetCount(array);
+    assert(a < b); assert(count % 2 == 0);
+    
+    // In the fencepost representation, simply toggling the existence of
+    // fenceposts 'a' and 'b' achieves symmetric difference.
+    
+    CFIndex idxa = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)a, uintptrComparator, NULL);
+    if((uintptr_t)CFArrayGetValueAtIndex(array, idxa) == a) {
+        CFArrayRemoveValueAtIndex(array, idxa);
+    } else {
+        CFArrayInsertValueAtIndex(array, idxa, (void*)a);
+    }
+
+    CFIndex idxb = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)b, uintptrComparator, NULL);
+    if((uintptr_t)CFArrayGetValueAtIndex(array, idxb) == b) {
+        CFArrayRemoveValueAtIndex(array, idxb);
+    } else {
+        CFArrayInsertValueAtIndex(array, idxb, (void*)b);
+    }
+    
+    assert(CFArrayGetCount(array) % 2 == 0);
+}
+
+static BOOL HFRangeSetContainsAllRange(CFMutableArrayRef array, uintptr_t a, uintptr_t b) {
+    CFIndex count = CFArrayGetCount(array);
+    assert(a < b); assert(count % 2 == 0);
+    CFIndex idxa = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)a, uintptrComparator, NULL);
+    CFIndex idxb = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)b, uintptrComparator, NULL);
+    if(idxa >= count || idxb == 0) return NO;
+    
+    // Optimization: if the indexes are far enough apart, then obviouly there's a gap.
+    if(idxb - idxa >= 2) return NO;
+
+    // The first fencepost >= 'b' must end an include range, a must be in the same range.
+    return idxb%2 == 1 && idxa == ((uintptr_t)CFArrayGetValueAtIndex(array, idxa) == a ? idxb-1 : idxb);
+}
+
+static BOOL HFRangeSetOverlapsAnyRange(CFMutableArrayRef array, uintptr_t a, uintptr_t b) {
+    CFIndex count = CFArrayGetCount(array);
+    assert(a < b); assert(count % 2 == 0);
+    CFIndex idxa = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)a, uintptrComparator, NULL);
+    CFIndex idxb = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)b, uintptrComparator, NULL);
+    if(idxa >= count || idxb == 0) return NO;
+    
+    // Optimization: if the indexes are far enough apart, then obviouly there's overlap.
+    if(idxb - idxa >= 2) return YES;
+    
+    if((uintptr_t)CFArrayGetValueAtIndex(array, idxa) == a) {
+        // 'a' is an included fencepost, or instead 'b' makes it past an included fencepost.
+        return idxa % 2 == 0 || b > (uintptr_t)CFArrayGetValueAtIndex(array, idxa+1);
+    } else {
+        // 'a' lies in an included range, or instead 'b' makes it past an included fencepost.
+        return  idxa % 2 == 1 || b > (uintptr_t)CFArrayGetValueAtIndex(array, idxa);
     }
 }
+
+- (instancetype)init {
+    if(!(self = [super init])) return nil;
+    array = CFArrayCreateMutable(kCFAllocatorDefault, 0, NULL);
+    return self;
+}
+
+- (void)dealloc {
+    CFRelease(array);
+}
+
++ (HFRangeSet *)withRange:(HFRange)range {
+    HFRangeSet *newSet = [[HFRangeSet alloc] init];
+    if(range.length > 0) {
+        CFArrayAppendValue(newSet->array, (void*)ll2p(range.location));
+        CFArrayAppendValue(newSet->array, (void*)ll2p(HFMaxRange(range)));
+    }
+    return newSet;
+}
+
++ (HFRangeSet *)withRanges:(const HFRange *)ranges count:(NSUInteger)count {
+    // FIXME: Stub. Don't rely on the thing we're replacing!
+    return [HFRangeSet withRangeWrappers:[HFRangeWrapper withRanges:ranges count:count]];
+}
+
++ (HFRangeSet *)withRangeWrappers:(NSArray *)ranges {
+    HFRangeSet *newSet = [[HFRangeSet alloc] init];
+    for(HFRangeWrapper *wrapper in [HFRangeWrapper organizeAndMergeRanges:ranges]) {
+        if(wrapper->range.length > 0) {
+            CFArrayAppendValue(newSet->array, (void*)ll2p(wrapper->range.location));
+            CFArrayAppendValue(newSet->array, (void*)ll2p(HFMaxRange(wrapper->range)));
+        }
+    }
+    return newSet;
+}
+
++ (HFRangeSet *)withRangeSet:(HFRangeSet *)rangeSet {
+    return [rangeSet copy];
+}
+
++ (HFRangeSet *)complementOfRangeSet:(HFRangeSet *)rangeSet inRange:(HFRange)range {
+    if(range.length <= 0) {
+        // Complement in empty is... empty!
+        return [HFRangeSet withRange:HFZeroRange];
+    }
+    uintptr_t a = ll2p(range.location);
+    uintptr_t b = ll2p(HFMaxRange(range));
+    CFIndex count = CFArrayGetCount(rangeSet->array);
+    CFIndex idxa = CFArrayBSearchValues(rangeSet->array, CFRangeMake(0, count), (void*)a, uintptrComparator, NULL);
+    CFIndex idxb = CFArrayBSearchValues(rangeSet->array, CFRangeMake(0, count), (void*)b, uintptrComparator, NULL);
+    if(idxa >= count || idxb == 0)
+        return [HFRangeSet withRange:range];
+    
+    // Alright, the trivial responses are past. We'll need to build a new set.
+    // Given the fencepost representation of sets, we can efficiently produce an
+    // inverted set by just copying the fenceposts between 'a' and 'b', and then
+    // maybe including 'a' and 'b'.
+    
+    HFRangeSet *newSet = [[HFRangeSet alloc] init];
+
+    // newSet must contain all the fenceposts strictly between 'a' and 'b'
+    CFIndex copyloc = (uintptr_t)CFArrayGetValueAtIndex(rangeSet->array, idxa) == a ? idxa+1 : idxa;
+    CFIndex copylen = idxb - copyloc;
+    
+    // Include 'a' if it's needed to invert the parity of the copy.
+    if(copyloc % 2 == 0) CFArrayAppendValue(newSet->array, &a);
+    
+    CFArrayAppendArray(newSet->array, rangeSet->array, CFRangeMake(copyloc, copylen));
+    
+    // Include 'b' if it's needed to close off the set.
+    if(CFArrayGetCount(newSet->array) % 2 == 1)
+        CFArrayAppendValue(newSet->array, &b);
+
+    assert(CFArrayGetCount(newSet->array) % 2 == 0);
+    return newSet;
+}
+
+
+- (void)addRange:(HFRange)range {
+    if(range.length == 0) return;
+    HFRangeSetAddRange(array, ll2p(range.location), ll2p(HFMaxRange(range)));
+}
+- (void)removeRange:(HFRange)range {
+    if(range.length == 0) return;
+    HFRangeSetRemoveRange(array, ll2p(range.location), ll2p(HFMaxRange(range)));
+}
+- (void)toggleRange:(HFRange)range {
+    if(range.length == 0) return;
+    HFRangeSetToggleRange(array, ll2p(range.location), ll2p(HFMaxRange(range)));
+}
+
+- (void)clipToRange:(HFRange)range {
+    if(range.length <= 0) {
+        CFArrayRemoveAllValues(array);
+        return;
+    }
+    uintptr_t a = ll2p(range.location);
+    uintptr_t b = ll2p(HFMaxRange(range));
+    CFIndex count = CFArrayGetCount(array);
+    CFIndex idxa = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)a, uintptrComparator, NULL);
+    CFIndex idxb = CFArrayBSearchValues(array, CFRangeMake(0, count), (void*)b, uintptrComparator, NULL);
+    if(idxa >= count || idxb == 0) {
+        CFArrayRemoveAllValues(array);
+        return;
+    }
+    
+    // Keep only fenceposts strictly between 'a' and 'b', and then possibly
+    // add 'a' or 'b' as fenceposts.
+    CFIndex keeploc = (uintptr_t)CFArrayGetValueAtIndex(array, idxa) == a ? idxa+1 : idxa;
+    CFIndex keeplen = idxb - keeploc;
+    
+    // Include 'a' if it's needed to keep the parity straight.
+    if(keeploc % 2 == 1) {
+        keeploc--; keeplen++;
+        CFArraySetValueAtIndex(array, keeploc, (void*)a);
+    }
+    
+    if(keeploc > 0)
+        CFArrayReplaceValues(array, CFRangeMake(0, keeploc), NULL, 0);
+    if(keeploc+keeplen < count)
+        CFArrayReplaceValues(array, CFRangeMake(0, keeplen), NULL, 0);
+    
+    // Include 'b' if it's needed to keep the length even.
+    if(keeplen % 2 == 1) {
+        CFArrayAppendValue(array, (void*)b);
+    }
+    
+    assert(CFArrayGetCount(array) % 2 == 0);
+}
+
+
+- (void)addRangeSet:(HFRangeSet *)rangeSet {
+    CFArrayRef a = rangeSet->array;
+    CFIndex c = CFArrayGetCount(a);
+    for(CFIndex i2 = 0; i2 < c; i2 += 2) {
+        HFRangeSetAddRange(array, (uintptr_t)CFArrayGetValueAtIndex(a, i2), (uintptr_t)CFArrayGetValueAtIndex(a, i2+1));
+    }
+}
+- (void)removeRangeSet:(HFRangeSet *)rangeSet {
+    CFArrayRef a = rangeSet->array;
+    CFIndex c = CFArrayGetCount(a);
+    for(CFIndex i2 = 0; i2 < c; i2 += 2) {
+        HFRangeSetRemoveRange(array, (uintptr_t)CFArrayGetValueAtIndex(a, i2), (uintptr_t)CFArrayGetValueAtIndex(a, i2+1));
+    }
+}
+- (void)toggleRangeSet:(HFRangeSet *)rangeSet {
+    CFArrayRef a = rangeSet->array;
+    CFIndex c = CFArrayGetCount(a);
+    for(CFIndex i2 = 0; i2 < c; i2 += 2) {
+        HFRangeSetToggleRange(array, (uintptr_t)CFArrayGetValueAtIndex(a, i2), (uintptr_t)CFArrayGetValueAtIndex(a, i2+1));
+    }
+}
+
+- (void)clipToRangeSet:(HFRangeSet *)rangeSet {
+    HFRange span = [rangeSet spanningRange];
+    [self clipToRange:span];
+    [self removeRangeSet:[HFRangeSet complementOfRangeSet:rangeSet inRange:span]];
+}
+
+- (BOOL)isEqualToRangeSet:(HFRangeSet *)rangeSet {
+    // Because our arrays are fully normalized, this just checks for array equality.
+    CFArrayRef a = rangeSet->array;
+    CFIndex c = CFArrayGetCount(a);
+    if(c != CFArrayGetCount(array))
+        return NO;
+    
+    // Optimization: For long arrays, check the last few first,
+    // since appending to ranges is probably a common usage pattern.
+    const CFIndex opt_end = 10;
+    if(c > 2*opt_end) {
+        for(CFIndex i = c - 2*opt_end; i < c; i++) {
+            if(CFArrayGetValueAtIndex(a, i) != CFArrayGetValueAtIndex(array, i))
+                return NO;
+        }
+        c -= 2*opt_end;
+    }
+    
+    for(CFIndex i = 0; i < c; i++) {
+        if(CFArrayGetValueAtIndex(a, i) != CFArrayGetValueAtIndex(array, i))
+            return NO;
+    }
+    
+    return YES;
+}
+
+- (BOOL)isEmpty {
+    return CFArrayGetCount(array) == 0;
+}
+
+- (BOOL)containsAllRange:(HFRange)range {
+    if(range.length == 0) return YES;
+    return HFRangeSetContainsAllRange(array, ll2p(range.location), ll2p(HFMaxRange(range)));
+}
+
+- (BOOL)overlapsAnyRange:(HFRange)range {
+    if(range.length == 0) return NO;
+    return HFRangeSetOverlapsAnyRange(array, ll2p(range.location), ll2p(HFMaxRange(range)));
+}
+
+- (BOOL)containsAllRangeSet:(HFRangeSet *)rangeSet {
+    CFArrayRef a = rangeSet->array;
+    CFIndex c = CFArrayGetCount(a);
+    
+    // Optimization: check if containment is possible.
+    if(!HFRangeIsSubrangeOfRange([rangeSet spanningRange], [self spanningRange])) {
+        return NO;
+    }
+    
+    for(CFIndex i2 = 0; i2 < c; i2 += 2) {
+        uintptr_t x = (uintptr_t)CFArrayGetValueAtIndex(a, i2);
+        uintptr_t y = (uintptr_t)CFArrayGetValueAtIndex(a, i2+1);
+        if(!HFRangeSetContainsAllRange(array, x, y)) return NO;
+    }
+    return YES;
+}
+
+- (BOOL)overlapsAnyRangeSet:(HFRangeSet *)rangeSet {
+    CFArrayRef a = rangeSet->array;
+    CFIndex c = CFArrayGetCount(a);
+
+    // Optimization: check if overlap is possible.
+    if(!HFIntersectsRange([rangeSet spanningRange], [self spanningRange])) {
+        return NO;
+    }
+
+    for(CFIndex i2 = 0; i2 < c; i2 += 2) {
+        uintptr_t x = (uintptr_t)CFArrayGetValueAtIndex(a, i2);
+        uintptr_t y = (uintptr_t)CFArrayGetValueAtIndex(a, i2+1);
+        if(!HFRangeSetOverlapsAnyRange(array, x, y)) return YES;
+    }
+    return NO;
+}
+
+
+- (HFRange)spanningRange {
+    CFIndex count = CFArrayGetCount(array);
+    if(count == 0) return HFZeroRange;
+    
+    uintptr_t a = (uintptr_t)CFArrayGetValueAtIndex(array, 0);
+    uintptr_t b = (uintptr_t)CFArrayGetValueAtIndex(array, count-2) + (uintptr_t)CFArrayGetValueAtIndex(array, count-1);
+    
+    return HFRangeMake(a, b-a);
+}
+
+- (void)assertIntegrity {
+    CFIndex count = CFArrayGetCount(array);
+    HFASSERT(count % 2 == 0);
+    if(count == 0) return;
+    
+    uintptr_t prev = (uintptr_t)CFArrayGetValueAtIndex(array, 0);
+    for(CFIndex i = 1; i < count; i++) {
+        uintptr_t val = (uintptr_t)CFArrayGetValueAtIndex(array, i);
+        HFASSERT(val > prev);
+        prev = val;
+    }
+}
+
+- (BOOL)isEqual:(id)object {
+    if(![object isKindOfClass:[HFRangeSet class]])
+        return false;
+    return [self isEqualToRangeSet:object];
+}
+
+- (NSUInteger)hash {
+    CFIndex count = CFArrayGetCount(array);
+    NSUInteger x = 0;
+    for(CFIndex i2 = 0; i2 < count; i2 += 2) {
+        uintptr_t a = (uintptr_t)CFArrayGetValueAtIndex(array, i2);
+        uintptr_t b = (uintptr_t)CFArrayGetValueAtIndex(array, i2+1);
+#if 6364136223846793005 < NSUIntegerMax
+        x = (6364136223846793005 * (uint64_t)x + a);
+#else
+        x = (NSUInteger)(1103515245 * (uint64_t)x + a);
+#endif
+        x ^= (NSUInteger)b;
+    }
+    return x;
+}
+
+- (id)copyWithZone:(NSZone *)zone {
+    HFRangeSet *newSet = [[HFRangeSet allocWithZone:zone] init];
+    CFRelease(newSet->array);
+    newSet->array = (__bridge_retained CFMutableArrayRef)[[NSMutableArray allocWithZone:zone] initWithArray:(__bridge NSArray*)array copyItems:NO];
+    return newSet;
+}
+
+- (void)encodeWithCoder:(NSCoder *)aCoder {
+    NSUInteger count = CFArrayGetCount(array);
+    NEW_ARRAY(uint64_t, values, count);
+    
+    // Fill array with 64-bit, little endian bytes.
+    if(sizeof(const void *) == sizeof(uint64_t)) {
+        // Hooray, we can just use CFArrayGetValues
+        CFArrayGetValues(array, CFRangeMake(0, count), (const void **)&values);
+#if __LITTLE_ENDIAN__
+#else
+        // Boo, we have to swap everything.
+        for(NSUInteger i = 0; i < count; i++) {
+            values[i] = CFSwapInt64HostToLittle(values[i]);
+        }
+#endif
+    } else {
+        // Boo, we have to iterate through the array.
+        NSUInteger i = 0;
+        for(id val in (__bridge NSArray*)array) {
+            values[i++] = CFSwapInt64HostToLittle((uint64_t)(__bridge const void *)val);
+        }
+    }
+    [aCoder encodeBytes:values length:count * sizeof(*values)];
+}
+
+- (instancetype)initWithCoder:(NSCoder *)aDecoder {
+    if(!(self = [super init])) return nil;
+    
+    NSUInteger count;
+    uint64_t *values = [aDecoder decodeBytesWithReturnedLength:&count];
+    array = CFArrayCreateMutable(kCFAllocatorDefault, count+1, NULL);
+    
+    for(NSUInteger i = 0; i < count; i++) {
+        uint64_t x = CFSwapInt64LittleToHost(values[i]);
+        if(x > UINTPTR_MAX)
+            goto fail;
+        CFArrayAppendValue(array, (const void *)(uintptr_t)x);
+    }
+    if(CFArrayGetCount(array)%2 != 0)
+        goto fail;
+    return self;
+    
+fail:
+    CFRelease(array);
+    return nil;
+}
+
++ (BOOL)supportsSecureCoding {
+    return YES;
+}
+
+@end
 
 uint8_t HFStringEncodingCharacterLength(NSStringEncoding encoding) {
     switch (CFStringConvertNSStringEncodingToEncoding(encoding)) {
@@ -479,7 +751,7 @@ NSString *HFHexStringFromData(NSData *data) {
         charBuffer[charIndex++] = hex2char(byte >> 4);
         charBuffer[charIndex++] = hex2char(byte & 0xF);
     }
-    return [[[NSString alloc] initWithBytesNoCopy:charBuffer length:stringLength encoding:NSASCIIStringEncoding freeWhenDone:YES] autorelease];
+    return [[NSString alloc] initWithBytesNoCopy:charBuffer length:stringLength encoding:NSASCIIStringEncoding freeWhenDone:YES];
 }
 
 void HFSetFDShouldCache(int fd, BOOL shouldCache) {
@@ -614,7 +886,7 @@ NSString *HFDescribeByteCountWithPrefixAndSuffix(const char *stringPrefix, unsig
     char* resultPointer = NULL;
     int numChars = asprintf(&resultPointer, "%s%llu%s %s%s%s", stringPrefix, dividend, remainderBuff, suffixes[i].suffix, needsPlural ? "s" : "", stringSuffix);
     if (numChars < 0) return NULL;
-    return [[[NSString alloc] initWithBytesNoCopy:resultPointer length:numChars encoding:NSASCIIStringEncoding freeWhenDone:YES] autorelease];
+    return [[NSString alloc] initWithBytesNoCopy:resultPointer length:numChars encoding:NSASCIIStringEncoding freeWhenDone:YES];
 }
 
 static CGFloat interpolateShadow(CGFloat val) {
@@ -669,24 +941,3 @@ void HFUnregisterViewForWindowAppearanceChanges(NSView *self, BOOL appToo) {
         [center removeObserver:self name:NSApplicationDidResignActiveNotification object:nil];
     }    
 }
-
-#if USE_CHUD
-void HFStartTiming(const char *name) {
-    static BOOL inited;
-    if (! inited) {
-        inited = YES;
-        chudInitialize();
-        chudSetErrorLogFile(stderr);
-        chudAcquireRemoteAccess();
-    }
-    chudStartRemotePerfMonitor(name);
-    
-}
-
-void HFStopTiming(void) {
-    chudStopRemotePerfMonitor();
-}
-#else
-void HFStartTiming(const char *name) { USE(name); }
-void HFStopTiming(void) { }
-#endif

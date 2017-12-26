@@ -17,6 +17,8 @@
 #define HFASSERT(a) if (0 && ! (a)) abort() 
 #endif
 
+#define HFASSERT_MAIN_THREAD() HFASSERT([[NSThread currentThread] isMainThread]) 
+
 
 #define UNIMPLEMENTED_VOID() [NSException raise:NSGenericException \
                                          format:@"Message %@ sent to instance of class %@, "\
@@ -26,7 +28,7 @@
 #define UNIMPLEMENTED() UNIMPLEMENTED_VOID(); return 0
 
 /* Macro to "use" a variable to prevent unused variable warnings. */
-#define USE(x) (void)(x)
+#define USE(x) ((void)(x))
 
 #define check_malloc(x) ({ size_t _count = (x); void *_result = malloc(_count); if(!_result) { fprintf(stderr, "Out of memory allocating %lu bytes\n", (unsigned long)_count); exit(EXIT_FAILURE); } _result; })
 #define check_calloc(x) ({ size_t _count = (x); void *_result = calloc(_count, 1); if(!_result) { fprintf(stderr, "Out of memory allocating %lu bytes\n", (unsigned long)_count); exit(EXIT_FAILURE); } _result; })
@@ -52,22 +54,22 @@
 #define EXPECT_CLASS(e, c) USE(e)
 #endif
 
-#if __LP64__
-#define FOREACH(type, var, exp) for (type var in (exp)) 
-#else
-/* Helper macros used by FOREACH */
-#define FOREACH_LINE(type, var, exp, line) NSEnumerator *enum_ ## var ## line = [exp objectEnumerator]; type var ; while ((var = [enum_ ## var ## line nextObject]))
-#define FOREACH_TEMP(type, var, exp, line) FOREACH_LINE(type, var, exp, line)
-#define FOREACH(type, var, exp) FOREACH_TEMP(type, var, exp, __LINE__)
-#endif
-
-/* Create a stack or dynamic array of the given size.  This memory is NOT scanned and is NOT collected!  Anything you put in here must have external references! */
 #define NEW_ARRAY(type, name, number) \
     type name ## static_ [256];\
     type * name = ((number) <= 256 ? name ## static_ : check_malloc((number) * sizeof(type)))
     
 #define FREE_ARRAY(name) \
     if (name != name ## static_) free(name)
+
+// See "Can I create a C array of retained pointers under ARC?"
+// https://developer.apple.com/library/content/releasenotes/ObjectiveC/RN-TransitioningToARC/Introduction/Introduction.html
+#define NEW_OBJ_ARRAY(type, name, number) \
+    __strong type * name = (__strong type *)check_calloc((number) * sizeof(type))
+#define FREE_OBJ_ARRAY(name, number) \
+    for (size_t __Free_Index = 0; __Free_Index < number; ++__Free_Index) { \
+        name[__Free_Index] = nil; \
+    } \
+    free(name);
 
 #if !defined(MIN)
     #define MIN(A,B)	({ __typeof__(A) __a = (A); __typeof__(B) __b = (B); __a < __b ? __a : __b; })
@@ -91,9 +93,8 @@
 
 #ifdef __OBJC__
     #import <HexFiend/HFFunctions.h>
-    #import <HexFiend/HFFunctions_Private.h>
+    #import "HFFunctions_Private.h"
 #endif
-
 
 #ifndef __has_feature      // Optional.
 #define __has_feature(x) 0 // Compatibility with non-clang compilers.

@@ -13,31 +13,50 @@
 
 NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
 
+static NSMapTable *byteArrayMap = nil;
+
 @implementation HFPasteboardOwner
 
 + (void)initialize {
     if (self == [HFPasteboardOwner class]) {
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(prepareCommonPasteboardsForChangeInFileNotification:) name:HFPrepareForChangeInFileNotification object:nil];
+
+        HFASSERT_MAIN_THREAD(); // byteArrayMap is not thread safe
+        // strongToWeakObjectsMapTable requires 10.8+
+        if ([NSMapTable respondsToSelector:@selector(strongToWeakObjectsMapTable)]) {
+            byteArrayMap = [NSMapTable strongToWeakObjectsMapTable];
+        } else {
+            byteArrayMap = [NSMapTable mapTableWithStrongToWeakObjects];
+        }
     }
 }
 
-- (id)initWithPasteboard:(NSPasteboard *)pboard forByteArray:(HFByteArray *)array withTypes:(NSArray *)types {
+- (instancetype)initWithPasteboard:(NSPasteboard *)pboard forByteArray:(HFByteArray *)array withTypes:(NSArray *)types {
     REQUIRE_NOT_NULL(pboard);
     REQUIRE_NOT_NULL(array);
     REQUIRE_NOT_NULL(types);
     self = [super init];
-    byteArray = [array retain];
+    byteArray = array;
     pasteboard = pboard;
     [pasteboard declareTypes:types owner:self];
     
     // get notified when we're about to write a file, so that if they're overwriting a file backing part of our byte array, we can properly clear or preserve our pasteboard
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(changeInFileNotification:) name:HFPrepareForChangeInFileNotification object:nil];
     
+    // No background copies in progress when we start.
+    progressTracker = nil;
+    progressTrackingWindow = nil;
+
+    HFASSERT_MAIN_THREAD(); // byteArrayMap is not thread safe
+    byteArrayMapKey = [[self class] createUUI];
+    HFASSERT([byteArrayMap objectForKey:byteArrayMapKey] == nil);
+    [byteArrayMap setObject:byteArray forKey:byteArrayMapKey];
+    
     return self;
 }
 
 + (id)ownPasteboard:(NSPasteboard *)pboard forByteArray:(HFByteArray *)array withTypes:(NSArray *)types {
-    return [[[self alloc] initWithPasteboard:pboard forByteArray:array withTypes:types] autorelease];
+    return [[self alloc] initWithPasteboard:pboard forByteArray:array withTypes:types];
 }
 
 - (void)tearDownPasteboardReferenceIfExists {
@@ -46,18 +65,18 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
         [[NSNotificationCenter defaultCenter] removeObserver:self name:HFPrepareForChangeInFileNotification object:nil];
     }
     if (retainedSelfOnBehalfOfPboard) {
-        CFRelease(self);
+        CFRelease((CFTypeRef)self);
         retainedSelfOnBehalfOfPboard = NO;
     }
 }
 
-
 + (HFByteArray *)_unpackByteArrayFromDictionary:(NSDictionary *)byteArrayDictionary {
     HFByteArray *result = nil;
     if (byteArrayDictionary) {
-        NSString *uuid = [byteArrayDictionary objectForKey:@"HFUUID"];
+        NSString *uuid = byteArrayDictionary[@"HFUUID"];
         if ([uuid isEqual:[self uuid]]) {
-            result = (HFByteArray *)[[byteArrayDictionary objectForKey:@"HFByteArray"] unsignedLongValue];
+            HFASSERT_MAIN_THREAD(); // byteArrayMap is not thread safe
+            result = [byteArrayMap objectForKey:byteArrayDictionary[@"HFByteArray"]];
         }
     }
     return result;
@@ -71,13 +90,13 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
 
 /* Try to fix up commonly named pasteboards when a file is about to be saved */
 + (void)prepareCommonPasteboardsForChangeInFileNotification:(NSNotification *)notification {
-    const BOOL *cancellationPointer = [[[notification userInfo] objectForKey:HFChangeInFileShouldCancelKey] pointerValue];
+    const BOOL *cancellationPointer = [[notification userInfo][HFChangeInFileShouldCancelKey] pointerValue];
     if (*cancellationPointer) return; //don't do anything if someone requested cancellation
     
     NSDictionary *userInfo = [notification userInfo];
-    NSArray *changedRanges = [userInfo objectForKey:HFChangeInFileModifiedRangesKey];
+    NSArray *changedRanges = userInfo[HFChangeInFileModifiedRangesKey];
     HFFileReference *fileReference = [notification object];
-    NSMutableDictionary *hint = [userInfo objectForKey:HFChangeInFileHintKey];
+    NSMutableDictionary *hint = userInfo[HFChangeInFileHintKey];
     
     NSString * const names[] = {NSGeneralPboard, NSFindPboard, NSDragPboard};
     NSUInteger i;
@@ -86,7 +105,7 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
         HFByteArray *byteArray = [self unpackByteArrayFromPasteboard:pboard];
         if (byteArray && ! [byteArray clearDependenciesOnRanges:changedRanges inFile:fileReference hint:hint]) {
             /* This pasteboard no longer works */
-            [pboard declareTypes:[NSArray array] owner:nil];
+            [pboard declareTypes:@[] owner:nil];
         }
     }
 }
@@ -95,11 +114,11 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
     HFASSERT(pasteboard != nil);
     HFASSERT(byteArray != nil);
     NSDictionary *userInfo = [notification userInfo];
-    const BOOL *cancellationPointer = [[userInfo objectForKey:HFChangeInFileShouldCancelKey] pointerValue];
+    const BOOL *cancellationPointer = [userInfo[HFChangeInFileShouldCancelKey] pointerValue];
     if (*cancellationPointer) return; //don't do anything if someone requested cancellation
-    NSMutableDictionary *hint = [userInfo objectForKey:HFChangeInFileHintKey];
+    NSMutableDictionary *hint = userInfo[HFChangeInFileHintKey];
     
-    NSArray *changedRanges = [[notification userInfo] objectForKey:HFChangeInFileModifiedRangesKey];
+    NSArray *changedRanges = [notification userInfo][HFChangeInFileModifiedRangesKey];
     HFFileReference *fileReference = [notification object];
     if (! [byteArray clearDependenciesOnRanges:changedRanges inFile:fileReference hint:hint]) {
         /* We can't do it */
@@ -108,18 +127,10 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
 }
 
 - (void)dealloc {
+    HFASSERT_MAIN_THREAD(); // byteArrayMap is not thread safe
+    HFASSERT([byteArrayMap objectForKey:byteArrayMapKey] != nil);
+    [byteArrayMap removeObjectForKey:byteArrayMapKey];
     [self tearDownPasteboardReferenceIfExists];
-    [byteArray release];
-    [super dealloc];
-}
-
-- (void)moveDataToPasteboardWithProgressReporting:(SEL)commandToPerform userInfo:(id)userInfo {
-    REQUIRE_NOT_NULL(commandToPerform);
-    HFProgressTracker *tracker = [[HFProgressTracker alloc] init];
-    typedef void (*FuncPtr_t)(id, SEL, id, id);
-    const FuncPtr_t func = (FuncPtr_t)objc_msgSend;
-    func(self, commandToPerform, userInfo, tracker);
-    [tracker release];
 }
 
 - (void)writeDataInBackgroundToPasteboard:(NSPasteboard *)pboard ofLength:(unsigned long long)length forType:(NSString *)type trackingProgress:(HFProgressTracker *)tracker {
@@ -131,10 +142,10 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
 }
 
 - (void)backgroundMoveDataToPasteboard:(NSString *)type {
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    @autoreleasepool {
     [self writeDataInBackgroundToPasteboard:pasteboard ofLength:dataAmountToCopy forType:type trackingProgress:progressTracker];
     [self performSelectorOnMainThread:@selector(backgroundMoveDataFinished:) withObject:nil waitUntilDone:NO];
-    [pool drain];
+    }
 }
 
 - (void)backgroundMoveDataFinished:unused {
@@ -164,16 +175,49 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
 }
 
 - (BOOL)moveDataWithProgressReportingToPasteboard:(NSPasteboard *)pboard forType:(NSString *)type {
+    // The -[NSRunLoop runMode:beforeDate:] call in the middle of this function can cause it to be
+    // called reentrantly, which was previously causing leaks and use-after-free crashes. For
+    // some reason this happens basically always when copying lots of data into VMware Fusion.
+    // I'm not even sure what the ideal behavior would be here, but am fairly certain that this
+    // is the best that can be done without rewriting a portion of the background copying code.
+    // TODO: Figure out what the ideal behavior should be here.
+    if(progressTracker) {
+        while(!backgroundCopyOperationFinished) {
+            [[NSRunLoop currentRunLoop] runMode:NSModalPanelRunLoopMode beforeDate:[NSDate distantFuture]];
+        }
+        // Reentrant calls will complete this loop (or, in the case of the first call, the similar
+        // loop below) in LIFO order. The first call is the only one that changes progressTracker,
+        // so progressTracker never changes in the other calls. (If that's not true then there
+        // is still a bug here).
+        HFASSERT(progressTracker);
+        return !progressTracker->cancelRequested;
+    }
+    
     HFASSERT(pboard == pasteboard);
     BOOL result = NO;
-    [self retain]; //resolving the pasteboard may release us, which deallocates us, which deallocates our tracker...make sure we survive through this function
-    progressTracker = [[HFProgressTracker alloc] init];
+    CFRetain((CFTypeRef)self); //resolving the pasteboard may release us, which deallocates us, which deallocates our tracker...make sure we survive through this function
     /* Give the user a chance to request a smaller amount if it's really big */
     unsigned long long availableAmount = [byteArray length];
     unsigned long long amountToCopy = [self amountToCopyForDataLength:availableAmount stringLength:[self stringLengthForDataLength:availableAmount]];
     if (amountToCopy > 0) {
-        if (! [NSBundle loadNibNamed:@"HFModalProgress" owner:self] || ! progressTrackingWindow) {
-            [NSException raise:NSInternalInconsistencyException format:@"Unable to load nib named %@", @"HFModalProgress"];
+        HFASSERT(!progressTracker);
+        HFASSERT(!progressTrackingWindow);
+
+        progressTracker = [[HFProgressTracker alloc] init];
+
+        NSMutableArray *topLevelObjects = [NSMutableArray array];
+        if ([[NSBundle mainBundle] respondsToSelector:@selector(loadNibNamed:owner:topLevelObjects:)]) {
+            /* for Mac OS X 10.8 or higher */
+            // unlike -loadNibNamed:owner: which is deprecated in 10.8, this method does
+            // not retain top level objects automatically, so objects must be set retain
+            if (![[NSBundle bundleForClass:[self class]] loadNibNamed:@"HFModalProgress" owner:self topLevelObjects:&topLevelObjects] || !progressTrackingWindow) {
+                NSLog(@"Unable to load nib named HFModalProgress!");
+            }
+        } else {
+            /* for Mac OS X 10.7 or lower */
+            if(![NSBundle loadNibNamed:@"HFModalProgress" owner:self] || !progressTrackingWindow) {
+                NSLog(@"Unable to load nib named HFModalProgress!");
+            }
         }
         backgroundCopyOperationFinished = NO;
         didStartModalSessionForBackgroundCopyOperation = NO;
@@ -183,19 +227,17 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
         [progressTracker setProgressIndicator:progressTrackingIndicator];
         [progressTracker beginTrackingProgress];
         [NSThread detachNewThreadSelector:@selector(backgroundMoveDataToPasteboard:) toTarget:self withObject:type];
-        [self performSelector:@selector(beginModalSessionForBackgroundCopyOperation:) withObject:nil afterDelay:1.0 inModes:[NSArray arrayWithObject:NSModalPanelRunLoopMode]];
+        [self performSelector:@selector(beginModalSessionForBackgroundCopyOperation:) withObject:nil afterDelay:1.0 inModes:@[NSModalPanelRunLoopMode]];
         while (! backgroundCopyOperationFinished) {
             [[NSRunLoop currentRunLoop] runMode:NSModalPanelRunLoopMode beforeDate:[NSDate distantFuture]];
         }
         [progressTracker endTrackingProgress];
         [progressTrackingWindow close];
-        [progressTrackingWindow release];
         progressTrackingWindow = nil;
-        result = ! progressTracker->cancelRequested;
-        [progressTracker release];
-        progressTracker = nil;
+        result = !progressTracker->cancelRequested;
+        progressTracker = nil; // Used to detect reentrancy; zero this last.
     }
-    [self release];
+    CFRelease((CFTypeRef)self);
     return result;
 }
 
@@ -221,12 +263,10 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
     if ([type isEqualToString:HFPrivateByteArrayPboardType]) {
         if (! retainedSelfOnBehalfOfPboard) {
             retainedSelfOnBehalfOfPboard = YES;
-            CFRetain(self);
+            CFRetain((CFTypeRef)self);
         }
-        NSDictionary *dict = [NSDictionary dictionaryWithObjectsAndKeys:
-                              [NSNumber numberWithUnsignedLong:(unsigned long)byteArray], @"HFByteArray",
-                              [[self class] uuid], @"HFUUID",
-                              nil];
+        NSDictionary *dict = @{@"HFByteArray": byteArrayMapKey,
+                              @"HFUUID": [[self class] uuid]};
         [pboard setPropertyList:dict forType:type];
     }
     else {
@@ -239,12 +279,18 @@ NSString *const HFPrivateByteArrayPboardType = @"HFPrivateByteArrayPboardType";
 - (void)setBytesPerLine:(NSUInteger)val { bytesPerLine = val; }
 - (NSUInteger)bytesPerLine { return bytesPerLine; }
 
++ (NSString *)createUUI {
+    CFUUIDRef uuidRef = CFUUIDCreate(NULL);
+    HFASSERT(uuidRef != NULL);
+    NSString *ret = (__bridge NSString *)CFUUIDCreateString(NULL, uuidRef);
+    CFRelease(uuidRef);
+    return ret;
+}
+
 + (NSString *)uuid {
     static NSString *uuid;
     if (! uuid) {
-        CFUUIDRef uuidRef = CFUUIDCreate(NULL);
-        uuid = (NSString *)CFUUIDCreateString(NULL, uuidRef);
-        CFRelease(uuidRef);
+        uuid = [self createUUI];
     }
     return uuid;
 }

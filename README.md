@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 Hex Fiend 是 Mac 下最好用的十六进制编辑器，Xcode 内嵌的十六进制编辑功能就是 Hex Fiend 提供的（苹果一向实用拿来注意，当然会甄别会选择也是一种很好的能力）。闲来无事，我 fork 了 Hex Fiend 的代码，。并做了以下修改：
 
@@ -13,12 +14,15 @@ Hex Fiend 是 Mac 下最好用的十六进制编辑器，Xcode 内嵌的十六�
 <!-- more -->
 
 下面是原版介绍：
+=======
+<img align="right" src="docs/screenshot.png?raw=true">
+>>>>>>> ridiculousfish/master
 
 # Hex Fiend
-Hex Fiend is a fast and clever hex editor for Mac OS X, written using the Cocoa frameworks. Hex Fiend also provides a framework, allowing "hex views" to be embedded in other applications.
+Hex Fiend is a fast and clever hex editor for macOS, written using the Cocoa frameworks. Hex Fiend also provides a framework, allowing "hex views" to be embedded in other applications.
 
-## License
-Hex Fiend is released under a liberal BSD-style [license](./License.txt).
+## Download
+Download the latest version from the [releases](https://github.com/ridiculousfish/HexFiend/releases) page.
 
 ## More Information:
 * API documentation, see [ridiculousfish.com/hexfiend/docs/](http://ridiculousfish.com/hexfiend/docs/)

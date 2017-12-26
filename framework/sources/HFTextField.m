@@ -23,7 +23,7 @@
     [[layoutRepresenter view] setFrame:viewFrame];
 }
 
-- (id)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame {
     if ((self = [super initWithFrame:frame])) {
         dataController = [[HFController alloc] init];
         
@@ -47,14 +47,6 @@
         [self addSubview:layoutView];
     }
     return self;
-}
-
-- (void)dealloc {
-    [dataController release];
-    [layoutRepresenter release];
-    [hexRepresenter release];
-    [textRepresenter release];
-    [super dealloc];
 }
 
 - (void)resizeSubviewsWithOldSize:(NSSize)oldSize {
@@ -127,7 +119,7 @@
     REQUIRE_NOT_NULL(rep);
     HFASSERT(rep == hexRepresenter || rep == textRepresenter);
     BOOL result = NO;
-    NSArray *reps = [dataController representers];
+    NSArray *reps = dataController.representers;
     if (reps) {
         result = ([reps indexOfObjectIdenticalTo:rep] != NSNotFound);
     }
@@ -183,5 +175,17 @@
     return [dataController editable];
 }
 
+- (void)selectAll:(id)sender {
+    HFTextRepresenter *rep = nil;
+    if ([self usesHexArea]) {
+        rep = hexRepresenter;
+    } else if ([self usesTextArea]) {
+        rep = textRepresenter;
+    } else {
+        HFASSERT(0);
+        NSBeep();
+    }
+    [rep selectAll:sender];
+}
 
 @end

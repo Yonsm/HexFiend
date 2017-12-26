@@ -7,6 +7,8 @@
 
 #import <Cocoa/Cocoa.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class HFByteArray;
 
 /*! @class HFByteArrayDataProxy
@@ -20,6 +22,8 @@
     NSUInteger length;
 }
 
-- (id)initWithByteArray:(HFByteArray *)array;
+- (instancetype)initWithByteArray:(HFByteArray *)array;
 
 @end
+
+NS_ASSUME_NONNULL_END

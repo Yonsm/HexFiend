@@ -13,8 +13,7 @@
 @interface HFStringEncodingPasteboardOwner : HFPasteboardOwner {
     NSStringEncoding encoding;
 }
-- (void)setEncoding:(NSStringEncoding)val;
-- (NSStringEncoding)encoding;
+@property (nonatomic) NSStringEncoding encoding;
 @end
 
 @implementation HFStringEncodingPasteboardOwner
@@ -32,21 +31,20 @@
     [tracker setMaxProgress:dataLength];
     unsigned char * restrict const stringBuffer = check_malloc(stringLength);
     while (remaining > 0) {
-	if (tracker->cancelRequested) break;
-	NSUInteger amountToCopy = MIN(32 * 1024, remaining);
-	[byteArray copyBytes:stringBuffer + offset range:HFRangeMake(offset, amountToCopy)];
-	offset += amountToCopy;
-	remaining -= amountToCopy;
-	HFAtomicAdd64(amountToCopy, progressReportingPointer);
+        if (tracker->cancelRequested) break;
+        NSUInteger amountToCopy = MIN(32u * 1024u, remaining);
+        [byteArray copyBytes:stringBuffer + offset range:HFRangeMake(offset, amountToCopy)];
+        offset += amountToCopy;
+        remaining -= amountToCopy;
+        HFAtomicAdd64(amountToCopy, progressReportingPointer);
     }
     if (tracker->cancelRequested) {
-	[pboard setString:@"" forType:type];
-	free(stringBuffer);
+        [pboard setString:@"" forType:type];
+        free(stringBuffer);
     }
     else {
-	NSString *string = [[NSString alloc] initWithBytesNoCopy:stringBuffer length:stringLength encoding:encoding freeWhenDone:YES];
-	[pboard setString:string forType:type];
-	[string release];
+        NSString *string = [[NSString alloc] initWithBytesNoCopy:stringBuffer length:stringLength encoding:encoding freeWhenDone:YES];
+        [pboard setString:string forType:type];
     }
 }
 
@@ -58,13 +56,13 @@
 
 @implementation HFStringEncodingTextRepresenter
 
-- (id)init {
+- (instancetype)init {
     self = [super init];
     stringEncoding = [NSString defaultCStringEncoding];
     return self;
 }
 
-- (id)initWithCoder:(NSCoder *)coder {
+- (instancetype)initWithCoder:(NSCoder *)coder {
     HFASSERT([coder allowsKeyedCoding]);
     self = [super initWithCoder:coder];
     stringEncoding = (NSStringEncoding)[coder decodeInt64ForKey:@"HFStringEncoding"];
@@ -107,7 +105,7 @@
     }
 }
 
-- (NSData *)dataFromPasteboardString:(NSString *)string  {
+- (NSData *)dataFromPasteboardString:(NSString *)string {
     REQUIRE_NOT_NULL(string);
     return [string dataUsingEncoding:[self encoding] allowLossyConversion:NO];
 }
@@ -117,6 +115,10 @@
 }
 
 - (void)copySelectedBytesToPasteboard:(NSPasteboard *)pb {
+    return [self copySelectedBytesToPasteboard:pb encoding:[self encoding]];
+}
+
+- (void)copySelectedBytesToPasteboard:(NSPasteboard *)pb encoding:(NSStringEncoding)enc {
     REQUIRE_NOT_NULL(pb);
     HFByteArray *selection = [[self controller] byteArrayForSelectedContentsRanges];
     HFASSERT(selection != NULL);
@@ -124,8 +126,8 @@
         NSBeep();
     }
     else {
-        HFStringEncodingPasteboardOwner *owner = [HFStringEncodingPasteboardOwner ownPasteboard:pb forByteArray:selection withTypes:[NSArray arrayWithObjects:HFPrivateByteArrayPboardType, NSStringPboardType, nil]];
-        [owner setEncoding:[self encoding]];
+        HFStringEncodingPasteboardOwner *owner = [HFStringEncodingPasteboardOwner ownPasteboard:pb forByteArray:selection withTypes:@[HFPrivateByteArrayPboardType, NSStringPboardType]];
+        [owner setEncoding:enc];
         [owner setBytesPerLine:[self bytesPerLine]];
     }
 }

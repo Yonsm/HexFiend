@@ -10,7 +10,7 @@
 
 @implementation HFByteSlice
 
-- (id)init {
+- (instancetype)init {
     if ([self class] == [HFByteSlice class]) {
         [NSException raise:NSInvalidArgumentException format:@"init sent to HFByteArray, but HFByteArray is an abstract class.  Instantiate one of its subclasses instead."];
     }
@@ -65,21 +65,6 @@
 - (HFRange)sourceRangeForFile:(HFFileReference *)reference {
     USE(reference);
     return HFRangeMake(ULLONG_MAX, ULLONG_MAX);
-}
-
-- (id)retain {
-    HFAtomicIncrement(&retainCount, NO);
-    return self;
-}
-
-- (oneway void)release {
-    if (HFAtomicDecrement(&retainCount, NO) == (NSUInteger)(-1)) {
-        [self dealloc];
-    }
-}
-
-- (NSUInteger)retainCount {
-    return 1 + retainCount;
 }
 
 @end

@@ -20,13 +20,12 @@ static inline Class preferredByteArrayClass(void) {
     HFASSERT([absoluteURL isFileURL]);
     NSError *localError = nil;
     NSString *path = [absoluteURL path];
-    HFFileReference *fileReference = [[[HFFileReference alloc] initWithPath:path error:&localError] autorelease];
+    HFFileReference *fileReference = [[HFFileReference alloc] initWithPath:path error:&localError];
     if (fileReference == nil) {
         if (outError) *outError = localError;
-    }
-    else {
-        HFFileByteSlice *byteSlice = [[[HFFileByteSlice alloc] initWithFile:fileReference] autorelease];
-        HFByteArray *byteArray = [[[preferredByteArrayClass() alloc] init] autorelease];
+    } else {
+        HFFileByteSlice *byteSlice = [[HFFileByteSlice alloc] initWithFile:fileReference];
+        HFByteArray *byteArray = [[preferredByteArrayClass() alloc] init];
         [byteArray insertByteSlice:byteSlice inRange:HFRangeMake(0, 0)];
         [controller setByteArray:byteArray];
         result = YES;
@@ -34,9 +33,13 @@ static inline Class preferredByteArrayClass(void) {
         if ([fileReference isPrivileged])
             [controller setEditMode:HFReadOnlyMode];
         else {
+<<<<<<< HEAD
             // If the file is > 64 MB in size, default to starting in overwrite mode
             //[Yonsm: Default overite mode] if ([fileReference length] > 64 * 1024 * 1024)
                 [controller setEditMode:HFOverwriteMode];
+=======
+            [controller setEditMode:[[NSUserDefaults standardUserDefaults] integerForKey:@"DefaultEditMode"]];
+>>>>>>> ridiculousfish/master
         }
     }
 

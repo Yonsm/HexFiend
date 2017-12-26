@@ -7,25 +7,22 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class HFRepresenterTextView;
 
-#define kHFRepresenterTextViewCalloutMaxGlyphCount 2
+#define kHFRepresenterTextViewCalloutMaxGlyphCount 2u
 
 @interface HFRepresenterTextViewCallout : NSObject {
-    NSInteger byteOffset;
-    id representedObject;
-    NSColor *color;
-    NSString *label;
-    
     CGFloat rotation;
     NSPoint tipOrigin;
     NSPoint pinStart, pinEnd;
 }
 
 @property(nonatomic) NSInteger byteOffset;
-@property(nonatomic, copy) NSColor *color;
-@property(nonatomic, copy) NSString *label;
-@property(nonatomic, retain) id representedObject;
+@property(nullable, nonatomic, copy) NSColor *color;
+@property(nullable, nonatomic, copy) NSString *label;
+@property(nullable, nonatomic, retain) id representedObject;
 @property(readonly) NSRect rect;
 
 + (void)layoutCallouts:(NSArray *)callouts inView:(HFRepresenterTextView *)textView;
@@ -34,3 +31,6 @@
 - (void)drawWithClip:(NSRect)clip;
 
 @end
+
+NS_ASSUME_NONNULL_END
+

@@ -9,41 +9,21 @@
 #import "BaseDataDocument.h"
 #import "AppDelegate.h"
 
-@implementation StringEncodingLinkButton
-
-- (void)awakeFromNib {
-    NSString *title = [self title];
-    NSDictionary *attributes = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor blueColor], NSForegroundColorAttributeName, [NSNumber numberWithInt:NSUnderlineStyleSingle], NSUnderlineStyleAttributeName, [self font], NSFontAttributeName, nil];
-    NSAttributedString *attributedTitle = [[NSAttributedString alloc] initWithString:title attributes:attributes];
-    [self setAttributedTitle:attributedTitle];
-    [attributes release];
-    [attributedTitle release];
-}
-
+@interface HFEncodingChoice : NSObject
+@property (readwrite, copy) NSString *label;
+@property (readwrite) NSStringEncoding encoding;
+@end
+@implementation HFEncodingChoice
 @end
 
 @implementation ChooseStringEncodingWindowController
+{
+    NSArray<HFEncodingChoice*> *encodings;
+    NSArray<HFEncodingChoice*> *activeEncodings;
+}
 
 - (NSString *)windowNibName {
     return @"ChooseStringEncodingDialog";
-}
-
-- (IBAction)OKButtonClicked:(id)sender {
-    USE(sender);
-    NSString *title = [encodingField stringValue];
-    NSNumber *selectedEncoding = title ? [keysToEncodings objectForKey:title] : nil;
-    if (! selectedEncoding) {
-        NSBeep();
-    } else {
-        /* Tell the front document (if any) and the app delegate */
-        NSStringEncoding encodingValue = [selectedEncoding integerValue];
-        id document = [[NSDocumentController sharedDocumentController] currentDocument];
-        if ([document respondsToSelector:@selector(setStringEncoding:)]) {
-            [document setStringEncoding:encodingValue];
-        }
-        [[NSApp delegate] setStringEncoding:encodingValue];
-    }
-    
 }
 
 /* Python script to generate string encoding stuff:
@@ -57,50 +37,49 @@
  print "ENCODING(" + match.group(0) + ");"
  
 
- ./script.py < /System/Library/Frameworks/CoreFoundation.framework/Headers/CFStringEncodingExt.h
+ ./script.py < /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreFoundation.framework/Versions/A/Headers/CFStringEncodingExt.h
  
 */
 
-static void addEncoding(NSString *name, CFStringEncoding value, NSMutableArray *localKeys, NSMutableArray *localValues, NSMutableSet *usedKeys) {
+static void addEncoding(NSString *name, CFStringEncoding value, NSMutableArray<HFEncodingChoice*> *localEncodings, NSMutableSet<NSNumber*> *usedEncodings) {
     NSStringEncoding cocoaEncoding = CFStringConvertEncodingToNSStringEncoding(value);
     if (cocoaEncoding == kCFStringEncodingInvalidId) {
         /* Unsupported! */
         return;
     }
-    if (! [usedKeys containsObject:name]) {
-        [usedKeys addObject:name];
-        NSString *strippedName, *localizedName, *title;
-        
-        /* Strip off the common prefix */
-        if ([name hasPrefix:@"kCFStringEncoding"]) {
-            strippedName = [name substringFromIndex:strlen("kCFStringEncoding")];
-        } else {
-            strippedName = name;
-        }
-        
-        /* Get the localized encoding name */
-        localizedName = [NSString localizedNameOfStringEncoding:cocoaEncoding];
-        
-        /* Compute the title.  \u2014 is an em-dash. */
-        if ([localizedName length] > 0) {
-            title = [[NSString alloc] initWithFormat:@"%@ \u2014 %@", strippedName, localizedName];
-        } else {
-            title = [strippedName copy];
-        }
-        
-        [localKeys addObject:title];
-        NSNumber *numberValue = [[NSNumber alloc] initWithInteger:cocoaEncoding];
-        [localValues addObject:numberValue];
-        [numberValue release];
-        [title release];
+    if ([usedEncodings containsObject:@(cocoaEncoding)]) {
+        return;
     }
+    NSString *strippedName, *localizedName, *title;
+    
+    /* Strip off the common prefix */
+    if ([name hasPrefix:@"kCFStringEncoding"]) {
+        strippedName = [name substringFromIndex:strlen("kCFStringEncoding")];
+    } else {
+        strippedName = name;
+    }
+    
+    /* Get the localized encoding name */
+    localizedName = [NSString localizedNameOfStringEncoding:cocoaEncoding];
+    
+    /* Compute the title.  \u2014 is an em-dash. */
+    if ([localizedName length] > 0) {
+        title = [NSString stringWithFormat:@"%@ \u2014 %@", strippedName, localizedName];
+    } else {
+        title = strippedName;
+    }
+
+    HFEncodingChoice *encoding = [[HFEncodingChoice alloc] init];
+    encoding.label = localizedName.length > 0 ? localizedName : strippedName;
+    encoding.encoding = cocoaEncoding;
+    [localEncodings addObject:encoding];
+    [usedEncodings addObject:@(cocoaEncoding)];
 }
 
 - (void)populateStringEncodings {
-    NSMutableArray *localKeys = [[NSMutableArray alloc] init];
-    NSMutableArray *localValues = [[NSMutableArray alloc] init];
-    NSMutableSet *usedKeys = [[NSMutableSet alloc] init];
-#define ENCODING(a) do { addEncoding( @ #a, (a), localKeys, localValues, usedKeys); } while (0)
+    NSMutableSet<NSNumber*> *usedEncodings = [NSMutableSet set];
+    NSMutableArray<HFEncodingChoice*> *localEncodings = [NSMutableArray array];
+#define ENCODING(a) do { addEncoding( @ #a, (a), localEncodings, usedEncodings); } while (0)
     ENCODING(kCFStringEncodingMacRoman);
     ENCODING(kCFStringEncodingWindowsLatin1);
     ENCODING(kCFStringEncodingISOLatin1);
@@ -252,36 +231,55 @@ static void addEncoding(NSString *name, CFStringEncoding value, NSMutableArray *
     ENCODING(kCFStringEncodingShiftJIS_X0213_00);
     
 #undef ENCODING
-    
-    [keysToEncodings release];
-    keysToEncodings = [[NSDictionary alloc] initWithObjects:localValues forKeys:localKeys];
-    [encodingField removeAllItems];
-    [encodingField addItemsWithObjectValues:localKeys];
-    
-    [localKeys release];
-    [localValues release];
-    [usedKeys release];
+
+    encodings = localEncodings;
+    activeEncodings = encodings;
 }
 
-- (void)windowDidLoad {
+- (void)awakeFromNib {
     [self populateStringEncodings];
-    [super windowDidLoad];
+    [tableView reloadData];
 }
 
-/* What happens when one of the header links is clicked in the string encoding dialog. */
-- (IBAction)openCFStringHeaderClicked:(id)sender {
-    USE(sender);
-    NSString *path = [@"/System/Library/Frameworks/CoreFoundation.framework/Headers/" stringByAppendingPathComponent:[sender title]];
-    BOOL success = [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:path isDirectory:NO]];
-    if (! success) {
-        /* It would be nice if we went to the web in this case */
+- (NSInteger)numberOfRowsInTableView:(NSTableView *)__unused tableView
+{
+    return activeEncodings.count;
+}
+
+- (id)tableView:(NSTableView *)__unused tableView objectValueForTableColumn:(NSTableColumn *)__unused tableColumn row:(NSInteger)row
+{
+    return activeEncodings[row].label;
+}
+
+- (void)tableViewSelectionDidChange:(NSNotification *)__unused notification
+{
+    NSInteger row = tableView.selectedRow;
+    if (row == -1) {
+        return;
     }
+    /* Tell the front document (if any) and the app delegate */
+    NSStringEncoding encodingValue = activeEncodings[row].encoding;
+    id document = [[NSDocumentController sharedDocumentController] currentDocument];
+    if ([document respondsToSelector:@selector(setStringEncoding:)]) {
+        [document setStringEncoding:encodingValue];
+    }
+    [(AppDelegate*)[NSApp delegate] setStringEncoding:encodingValue];
 }
 
-- (void)dealloc {
-    [keysToEncodings release];
-    [super dealloc];
+- (void)controlTextDidChange:(NSNotification * __unused)obj
+{
+    if (searchField.stringValue.length > 0) {
+        NSMutableArray *searchedEncodings = [NSMutableArray array];
+        for (HFEncodingChoice *choice in encodings) {
+            if ([choice.label rangeOfString:searchField.stringValue options:NSCaseInsensitiveSearch].location != NSNotFound) {
+                [searchedEncodings addObject:choice];
+            }
+        }
+        activeEncodings = searchedEncodings;
+    } else {
+        activeEncodings = encodings;
+    }
+    [tableView reloadData];
 }
-
 
 @end

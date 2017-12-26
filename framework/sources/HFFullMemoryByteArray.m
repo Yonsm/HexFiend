@@ -13,15 +13,10 @@
 
 @implementation HFFullMemoryByteArray
 
-- (id)init {
+- (instancetype)init {
     self = [super init];
     data = [[NSMutableData alloc] init];
     return self;
-}
-
-- (void)dealloc {
-    [data release];
-    [super dealloc];
 }
 
 - (unsigned long long)length {
@@ -44,11 +39,11 @@
     range.length = ll2l(lrange.length);
     HFFullMemoryByteArray* result = [[[self class] alloc] init];
     [result->data setData:[data subdataWithRange:range]];
-    return [result autorelease];
+    return result;
 }
 
 - (NSArray *)byteSlices {
-    return [NSArray arrayWithObject:[[[HFFullMemoryByteSlice alloc] initWithData:data] autorelease]];
+    return @[[[HFFullMemoryByteSlice alloc] initWithData:data]];
 }
 
 - (void)insertByteSlice:(HFByteSlice *)slice inRange:(HFRange)lrange {

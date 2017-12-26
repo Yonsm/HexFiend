@@ -23,10 +23,10 @@
 
     /* Compute byte granularity */
     NSUInteger granularity = 1;
-    FOREACH(HFRepresenter *, rep, [[leftView layoutRepresenter] representers]) {
+    for(HFRepresenter *rep in [leftView layoutRepresenter].representers) {
         granularity = HFLeastCommonMultiple(granularity, [rep byteGranularity]);
     }
-    FOREACH(HFRepresenter *, rep2, [[rightView layoutRepresenter] representers]) {
+    for(HFRepresenter *rep2 in [rightView layoutRepresenter].representers) {
         granularity = HFLeastCommonMultiple(granularity, [rep2 byteGranularity]);
     }
     
@@ -41,7 +41,7 @@
     }
 
     /* Compute BPL */
-    NSUInteger bpl = MAX(maxKnownGood, 1) * granularity;
+    NSUInteger bpl = MAX(maxKnownGood, 1u) * granularity;
     
     /* Return what we've discovered */
     *leftWidth = [leftLayout minimumViewWidthForBytesPerLine:bpl] + textViewToLayoutView;
@@ -190,7 +190,6 @@
 
 - (void)dealloc {
     HFUnregisterViewForWindowAppearanceChanges(self, registeredForAppNotifications);
-    [super dealloc];
 }
 
 @end

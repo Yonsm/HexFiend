@@ -15,21 +15,12 @@
 
 #include "fileport.h"
 
-static HFPrivilegedHelperConnection *sSharedConnection;
-
 @implementation HFPrivilegedHelperConnection
 
-+ (HFPrivilegedHelperConnection *)sharedConnection {
-    if (! sSharedConnection) {
-        sSharedConnection = [[self alloc] init];
-    }
-    return sSharedConnection;
-}
-
-- (id)init {
-    self = [super init];
-    
-    return self;
++ (instancetype)sharedConnection {
+    static id shared = nil;
+    if (!shared) shared = [[self alloc] init];
+    return shared;
 }
 
 static NSString *read_line(FILE *file) {
@@ -122,7 +113,7 @@ static NSString *read_line(FILE *file) {
 
 - (BOOL)getInfo:(struct HFProcessInfo_t *)outInfo forProcess:(pid_t)process {
     HFASSERT(outInfo != NULL);
-    if (! [self connectIfNecessary]) return NO;
+    if (![self connectIfNecessary]) return NO;
     uint8_t bitSize = 0;
     kern_return_t kr = _GratefulFatherProcessInfo([childReceiveMachPort machPort], process, &bitSize);
     if (kr != KERN_SUCCESS) {
@@ -134,22 +125,37 @@ static NSString *read_line(FILE *file) {
 }
 
 - (BOOL)connectIfNecessary {
+    if (self.disabled) return NO;
     if (childReceiveMachPort == nil) {
         NSError *oops = nil;
         if (! [self launchAndConnect:&oops]) {
-            if (oops) [NSApp presentError:oops];
+            if (oops) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    @autoreleasepool {
+                        HFASSERT_MAIN_THREAD();
+                        NSAlert *alert = [[NSAlert alloc] init];
+                        alert.messageText = NSLocalizedString(@"Failed to launch and connect helper.", "");
+                        alert.informativeText = oops.localizedDescription;
+                        (void)[alert runModal];
+                    }
+                });
+            }
         }
     }
     return [childReceiveMachPort isValid];
 }
 
 - (BOOL)launchAndConnect:(NSError **)error {
+    if (self.disabled) {
+        if(error) *error = nil;
+        return NO;
+    }
+    
     /* If we're already connected, we're done */
     if ([childReceiveMachPort isValid]) return YES;
     
     /* Guess not. This is probably the first connection. */
     [childReceiveMachPort invalidate];
-    [childReceiveMachPort release];
     childReceiveMachPort = nil;
     int err = 0;
     
@@ -179,7 +185,7 @@ static NSString *read_line(FILE *file) {
                 *error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSUserCancelledError userInfo:nil];
             } else {
                 NSString *description = [NSString stringWithFormat:@"Failed to create AuthorizationRef (error code %ld).", (long)err];
-                *error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadNoPermissionError userInfo:[NSDictionary dictionaryWithObjectsAndKeys:description, NSLocalizedDescriptionKey, nil]];
+                *error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadNoPermissionError userInfo:@{NSLocalizedDescriptionKey: description}];
             }
         }
 	}
@@ -199,8 +205,7 @@ static NSString *read_line(FILE *file) {
         CFErrorRef localError = NULL;
 		err = ! SMJobBless(kSMDomainSystemLaunchd, label, authRef, (CFErrorRef *)&localError);
         if (localError) {
-            if (error) *error = [[(id)localError retain] autorelease];
-            CFRelease(localError);
+            if (error) *error = (__bridge_transfer NSError*)localError;
         }
 	}
     

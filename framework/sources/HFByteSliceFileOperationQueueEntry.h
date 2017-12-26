@@ -7,6 +7,7 @@
 
 #import <Cocoa/Cocoa.h>
 
+NS_ASSUME_NONNULL_BEGIN
 
 @interface HFByteSliceFileOperationQueueEntry : NSObject {
 	@public
@@ -30,8 +31,10 @@
 	NSMutableArray *queue;
 }
 
-- (void *)allocateMemoryOfLength:(NSUInteger)len;
+- (void *)allocateMemoryOfLength:(NSUInteger)len NS_RETURNS_INNER_POINTER;
 - (void)freeMemory:(void *)buff ofLength:(NSUInteger)len;
 - (NSUInteger)suggestedAllocationLengthForMinimum:(NSUInteger)minimum maximum:(NSUInteger)maximum;
 
 @end
+
+NS_ASSUME_NONNULL_END

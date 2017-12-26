@@ -1,13 +1,13 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="4514" systemVersion="13B42" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="12121" systemVersion="16F73" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none">
     <dependencies>
-        <deployment version="1080" defaultVersion="1080" identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="4514"/>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12121"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="NSApplication"/>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application">
+        <customObject id="-3" userLabel="Application" customClass="NSObject">
             <connections>
                 <outlet property="delegate" destination="403" id="404"/>
             </connections>
@@ -26,14 +26,24 @@
                             <menuItem isSeparatorItem="YES" id="236">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>
-                            <menuItem title="Preferences…" hidden="YES" keyEquivalent="," id="129" userLabel="121"/>
+                            <menuItem title="Preferences…" keyEquivalent="," id="CUf-tx-nAw">
+                                <connections>
+                                    <action selector="openPreferences:" target="403" id="7x5-mT-aBi"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Check for Updates..." id="745">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="checkForUpdates:" target="744" id="747"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" hidden="YES" id="143">
+                            <menuItem title="Install Command Line Tool" id="jCS-5e-teN">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="installCommandLineTools:" target="Zzl-4N-uHo" id="bGX-FL-Dee"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="143">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>
                             <menuItem title="Services" id="131">
@@ -82,35 +92,10 @@
                                     <action selector="openDocument:" target="-1" id="374"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Open Path…" keyEquivalent="o" id="627">
-                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
-                                <connections>
-                                    <action selector="showWindow:" target="630" id="631"/>
-                                </connections>
-                            </menuItem>
                             <menuItem title="Open Drive…" keyEquivalent="D" id="731">
                                 <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
                                 <connections>
                                     <action selector="showWindow:" target="733" id="734"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Open Process" hidden="YES" enabled="NO" id="510">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <menu key="submenu" title="Open Process" id="511">
-                                    <items>
-                                        <menuItem title="Item" enabled="NO" id="512">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                        </menuItem>
-                                    </items>
-                                    <connections>
-                                        <outlet property="delegate" destination="717" id="718"/>
-                                    </connections>
-                                </menu>
-                            </menuItem>
-                            <menuItem title="Open Process by PID…" hidden="YES" enabled="NO" keyEquivalent="o" id="506">
-                                <modifierMask key="keyEquivalentModifierMask" control="YES" option="YES" command="YES"/>
-                                <connections>
-                                    <action selector="openProcess:" target="717" id="721"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Open Recent" id="124">
@@ -205,6 +190,11 @@
                             <menuItem title="Copy" keyEquivalent="c" id="197">
                                 <connections>
                                     <action selector="copy:" target="-1" id="224"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Copy as ASCII" keyEquivalent="C" id="dkv-xM-zDy">
+                                <connections>
+                                    <action selector="copyAsASCII:" target="-1" id="KwK-Qs-p8s"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Paste" keyEquivalent="v" id="203">
@@ -448,6 +438,25 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="482"/>
+                            <menuItem title="Line Number Format" id="h60-d7-ETA">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Line Number Format" id="KyC-Sy-AfC">
+                                    <items>
+                                        <menuItem title="Decimal" state="on" id="NUg-p8-VBz">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setLineNumberFormat:" target="-1" id="P6u-XA-Rvx"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Hexadecimal" tag="1" id="qtp-0H-g1W">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setLineNumberFormat:" target="-1" id="FUQ-zd-rLh"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
                             <menuItem title="Byte Grouping" id="488">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="Byte Grouping" id="489">
@@ -468,6 +477,12 @@
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
                                                 <action selector="modifyByteGrouping:" target="-1" id="500"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="3" tag="3" id="cfm-Iu-rES">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="modifyByteGrouping:" target="-1" id="D1r-oS-C2D"/>
                                             </connections>
                                         </menuItem>
                                         <menuItem title="4" tag="4" id="492">
@@ -496,6 +511,12 @@
                                         </menuItem>
                                     </items>
                                 </menu>
+                            </menuItem>
+                            <menuItem title="Hide Null Bytes" id="tEd-cL-IlH">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="setShowNullBytesFromMenuItem:" target="-1" id="VN0-ev-53i"/>
+                                </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="743"/>
                             <menuItem title="Enter Full Screen" tag="6" keyEquivalent="f" id="740">
@@ -670,14 +691,12 @@
                 <outlet property="extendForwardsItem" destination="397" id="407"/>
                 <outlet property="fontMenuItem" destination="409" id="413"/>
                 <outlet property="noBookmarksMenuItem" destination="8Hb-Ga-nGj" id="cOn-oy-A85"/>
-                <outlet property="processListMenuItem" destination="510" id="515"/>
                 <outlet property="stringEncodingMenu" destination="684" id="716"/>
             </connections>
         </customObject>
-        <customObject id="630" customClass="OpenPathWindowController"/>
         <customObject id="733" customClass="OpenDriveWindowController"/>
         <customObject id="680" customClass="ChooseStringEncodingWindowController"/>
-        <customObject id="717" customClass="ProcessList"/>
         <customObject id="744" customClass="SUUpdater"/>
+        <customObject id="Zzl-4N-uHo" userLabel="CLIController" customClass="CLIController"/>
     </objects>
 </document>

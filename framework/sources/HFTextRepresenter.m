@@ -19,19 +19,12 @@
     UNIMPLEMENTED();
 }
 
-- (id)init {
+- (instancetype)init {
     self = [super init];
-    
-    /* SnowLeopard controlAlternatingRowBackgroundColors were:
-       1.0, 1.0, 1.0
-       0.93, 0.95, 1.0
-    */
-       
     
     NSColor *color1 = [NSColor colorWithCalibratedWhite:1.0 alpha:1.0];
     NSColor *color2 = [NSColor colorWithCalibratedRed:.87 green:.89 blue:1. alpha:1.];
-    rowBackgroundColors = [[NSArray alloc] initWithObjects:color1, color2, nil];
-//    rowBackgroundColors = [[NSColor controlAlternatingRowBackgroundColors] copy];
+    _rowBackgroundColors = @[color1, color2];
     
     return self;
 }
@@ -40,22 +33,20 @@
     if ([self isViewLoaded]) {
         [[self view] clearRepresenter];
     }
-    [rowBackgroundColors release];
-    [super dealloc];
 }
 
 - (void)encodeWithCoder:(NSCoder *)coder {
     HFASSERT([coder allowsKeyedCoding]);
     [super encodeWithCoder:coder];
-    [coder encodeBool:behavesAsTextField forKey:@"HFBehavesAsTextField"];
-    [coder encodeObject:rowBackgroundColors forKey:@"HFRowBackgroundColors"];
+    [coder encodeBool:_behavesAsTextField forKey:@"HFBehavesAsTextField"];
+    [coder encodeObject:_rowBackgroundColors forKey:@"HFRowBackgroundColors"];
 }
 
-- (id)initWithCoder:(NSCoder *)coder {
+- (instancetype)initWithCoder:(NSCoder *)coder {
     HFASSERT([coder allowsKeyedCoding]);
     self = [super initWithCoder:coder];
-    behavesAsTextField = [coder decodeBoolForKey:@"HFBehavesAsTextField"];
-    rowBackgroundColors = [[coder decodeObjectForKey:@"HFRowBackgroundColors"] retain];
+    _behavesAsTextField = [coder decodeBoolForKey:@"HFBehavesAsTextField"];
+    _rowBackgroundColors = [coder decodeObjectForKey:@"HFRowBackgroundColors"];
     return self;
 }
 
@@ -95,7 +86,7 @@
     HFASSERT(byteRange.length > 0);
     HFRange displayedRange = [self entireDisplayedRange];
     HFRange intersection = HFIntersectionRange(displayedRange, byteRange);
-    NSRect result;
+    NSRect result = NSZeroRect;
     if (intersection.length > 0) {
         NSRange intersectionNSRange = NSMakeRange(ll2l(intersection.location - displayedRange.location), ll2l(intersection.length));
         if (intersectionNSRange.length > 0) {
@@ -134,7 +125,7 @@
 }
 
 - (HFTextVisualStyleRun *)styleForAttributes:(NSSet *)attributes range:(NSRange)range {
-    HFTextVisualStyleRun *run = [[[HFTextVisualStyleRun alloc] init] autorelease];
+    HFTextVisualStyleRun *run = [[HFTextVisualStyleRun alloc] init];
     [run setRange:range];
     if ([attributes containsObject:kHFAttributeMagic]) {
         [run setForegroundColor:[NSColor blueColor]];
@@ -167,7 +158,7 @@
     
     /* Process bookmarks */
     NSMutableIndexSet *bookmarkExtents = nil;
-    FOREACH(NSString *, attribute, attributes) {
+    for(NSString * attribute in attributes) {
         NSInteger bookmark = HFBookmarkFromBookmarkAttribute(attribute);
         if (bookmark != NSNotFound) {
             if (! bookmarkExtents) bookmarkExtents = [[NSMutableIndexSet alloc] init];
@@ -177,7 +168,6 @@
     
     if (bookmarkExtents) {
         [run setBookmarkExtents:bookmarkExtents];
-        [bookmarkExtents release];
     }
     return run;
 }
@@ -224,7 +214,7 @@
         [self updateText];
     }
     else {
-        [view setFont:[NSFont fontWithName:@"Monaco" size:(CGFloat)10.]];
+        [view setFont:[NSFont fontWithName:HFDEFAULT_FONT size:HFDEFAULT_FONTSIZE]];
     }
 }
 
@@ -292,7 +282,7 @@
 
 - (NSUInteger)byteGranularity {
     HFRepresenterTextView *view = [self view];
-    NSUInteger bytesPerColumn = MAX([view bytesPerColumn], 1), bytesPerCharacter = [view bytesPerCharacter];
+    NSUInteger bytesPerColumn = MAX([view bytesPerColumn], 1u), bytesPerCharacter = [view bytesPerCharacter];
     return HFLeastCommonMultiple(bytesPerColumn, bytesPerCharacter);
 }
 
@@ -303,9 +293,9 @@
     HFRange displayedRange = [self entireDisplayedRange];
     
     HFASSERT(displayedRange.length <= NSUIntegerMax);
-    NEW_ARRAY(NSValue *, clippedSelectedRanges, [selectedRanges count]);
+    NEW_OBJ_ARRAY(NSValue *, clippedSelectedRanges, [selectedRanges count]);
     NSUInteger clippedRangeIndex = 0;
-    FOREACH(HFRangeWrapper *, wrapper, selectedRanges) {
+    for(HFRangeWrapper * wrapper in selectedRanges) {
         HFRange selectedRange = [wrapper HFRange];
         BOOL clippedRangeIsVisible;
         NSRange clippedSelectedRange;
@@ -332,7 +322,7 @@
         if (clippedRangeIsVisible) clippedSelectedRanges[clippedRangeIndex++] = [NSValue valueWithRange:clippedSelectedRange];
     }
     result = [NSArray arrayWithObjects:clippedSelectedRanges count:clippedRangeIndex];
-    FREE_ARRAY(clippedSelectedRanges);
+    FREE_OBJ_ARRAY(clippedSelectedRanges, [selectedRanges count]);
     return result;
 }
 
@@ -362,9 +352,7 @@
             
             NSNumber *key = [[NSNumber alloc] initWithUnsignedInteger:mark];
             NSNumber *value = [[NSNumber alloc] initWithInteger:(long)(bookmarkRange.location - displayedRange.location)];
-            [result setObject:value forKey:key];
-            [key release];
-            [value release];
+            result[key] = value;
         }
     }
     return result;
@@ -414,7 +402,7 @@
     REQUIRE_NOT_NULL(pb);
     if ([[self controller] editable]) {
         // we can paste if the pboard contains text or contains an HFByteArray
-        return [HFPasteboardOwner unpackByteArrayFromPasteboard:pb] || [pb availableTypeFromArray:[NSArray arrayWithObject:NSStringPboardType]];
+        return [HFPasteboardOwner unpackByteArrayFromPasteboard:pb] || [pb availableTypeFromArray:@[NSStringPboardType]];
     }
     return NO;
 }
@@ -425,7 +413,7 @@
     if ([controller editMode] != HFInsertMode) return NO;
     if (! [controller editable]) return NO;
     
-    FOREACH(HFRangeWrapper *, rangeWrapper, [controller selectedContentsRanges]) {
+    for(HFRangeWrapper *rangeWrapper in [controller selectedContentsRanges]) {
         if ([rangeWrapper HFRange].length > 0) return YES; //we have something selected
     }
     return NO; // we did not find anything selected
@@ -440,7 +428,7 @@
         result = YES;
     }
     else {
-        NSString *stringType = [pb availableTypeFromArray:[NSArray arrayWithObject:NSStringPboardType]];
+        NSString *stringType = [pb availableTypeFromArray:@[NSStringPboardType]];
         if (stringType) {
             NSString *stringValue = [pb stringForType:stringType];
             if (stringValue) {
@@ -452,25 +440,6 @@
         }
     }
     return result;
-}
-
-- (NSArray *)rowBackgroundColors {
-    return rowBackgroundColors;
-}
-
-- (void)setRowBackgroundColors:(NSArray *)colors {
-    if (colors != rowBackgroundColors) {
-        [rowBackgroundColors release];
-        rowBackgroundColors = [colors copy];
-    }
-}
-
-- (void)setBehavesAsTextField:(BOOL)val {
-    behavesAsTextField = val;
-}
-
-- (BOOL)behavesAsTextField {
-    return behavesAsTextField;
 }
 
 @end

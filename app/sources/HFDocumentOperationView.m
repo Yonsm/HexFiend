@@ -29,14 +29,23 @@ static NSString *sNibName;
     if (! path) [NSException raise:NSInvalidArgumentException format:@"Unable to find nib named %@", name];
     sNibName = [name copy];
     NSMutableArray *topLevelObjects = [NSMutableArray array];
-    if (! [NSBundle loadNibFile:path externalNameTable:[NSDictionary dictionaryWithObjectsAndKeys:topLevelObjects, @"NSTopLevelObjects", owner, @"NSOwner", nil] withZone:NULL]) {
-        [NSException raise:NSInvalidArgumentException format:@"Unable to load nib at path %@", path];
+    if ([[NSBundle mainBundle] respondsToSelector:@selector(loadNibNamed:owner:topLevelObjects:)]) {
+        /* for Mac OS X 10.8 or higher */
+        // unlike -loadNibFile:externalNameTable:withZone: which is deprecated in 10.8, this method does
+        // not retain top level objects automatically, so objects must be set retain
+        if (! [[NSBundle mainBundle] loadNibNamed:name owner:owner topLevelObjects:&topLevelObjects]) {
+            [NSException raise:NSInvalidArgumentException format:@"Unable to load nib at path %@", path];
+        }
+    } else {
+        /* for Mac OS X 10.7 or lower */
+        if (! [NSBundle loadNibFile:path externalNameTable:@{@"NSTopLevelObjects": topLevelObjects, @"NSOwner": owner} withZone:NULL]) {
+            [NSException raise:NSInvalidArgumentException format:@"Unable to load nib at path %@", path];
+        }
     }
-    [sNibName release];
     sNibName = nil;
     HFDocumentOperationView *resultObject = nil;
     NSMutableArray *otherObjects = nil;
-    FOREACH(id, obj, topLevelObjects) {
+    for(id obj in topLevelObjects) {
         if ([obj isKindOfClass:[self class]]) {
             HFASSERT(resultObject == nil);
             resultObject = obj;
@@ -45,8 +54,6 @@ static NSString *sNibName;
             if (! otherObjects) otherObjects = [NSMutableArray array];
             [otherObjects addObject:obj];
         }
-        /* Balance the retain acquired by virtue of being a top level object in a nib.  Call objc_msgSend directly so that the static analyzer can't see it, because the static analyzer doesn't know about top level objects from nibs. */
-        objc_msgSend(obj, @selector(autorelease));
     }
     HFASSERT(resultObject != nil);
     if (otherObjects != nil) [resultObject setOtherTopLevelObjects:otherObjects];
@@ -57,7 +64,6 @@ static NSString *sNibName;
 
 - (void)setOtherTopLevelObjects:(NSArray *)objects {
     objects = [objects copy];
-    [otherTopLevelObjects release];
     otherTopLevelObjects = objects;
 }
 
@@ -66,30 +72,12 @@ static NSString *sNibName;
     [super awakeFromNib];
 }
 
-- (NSString *)displayName {
-    return displayName;
-}
-
-- (void)setDisplayName:(NSString *)name {
-    name = [name copy];
-    [displayName release];
-    displayName = name;
-}
-
-
-- (id)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame {
     self = [super initWithFrame:frame];
     defaultSize = frame.size;
     nibName = [sNibName copy];
     progress = NO_TRACKING_PERCENTAGE;
     return self;
-}
-
-- (void)dealloc {
-    [otherTopLevelObjects release];
-    [nibName release];
-    [displayName release];
-    [super dealloc];
 }
 
 static NSView *searchForViewWithIdentifier(NSView *view, NSString *identifier) {
@@ -103,7 +91,7 @@ static NSView *searchForViewWithIdentifier(NSView *view, NSString *identifier) {
     
     if (! result) {
         /* Try subviews */
-        for (NSView *subview in [view subviews]) {
+        for(NSView *subview in [view subviews]) {
             if ((result = searchForViewWithIdentifier(subview, identifier))) break;
         }
     }
@@ -151,7 +139,7 @@ static NSView *searchForViewWithIdentifier(NSView *view, NSString *identifier) {
         NSColor *startColor = [NSColor colorWithCalibratedWhite:1. alpha:1.];
         NSColor *midColor = [NSColor colorWithCalibratedWhite:.85 alpha:1.];
         NSColor *endColor = [NSColor colorWithCalibratedWhite:.9 alpha:1.];
-        sGradient = [[NSGradient alloc] initWithColors:[NSArray arrayWithObjects:startColor, midColor, endColor, nil]];
+        sGradient = [[NSGradient alloc] initWithColors:@[startColor, midColor, endColor]];
     }
     [sGradient drawInRect:[self bounds] angle:-90];
 }
@@ -168,17 +156,14 @@ static NSView *searchForViewWithIdentifier(NSView *view, NSString *identifier) {
     [progressIndicator setHidden:YES];
     dispatch_group_wait(waitGroup, DISPATCH_TIME_FOREVER);
     completionHandler(threadResult);
-    [(id)threadResult release];
-    [tracker release];
+    completionHandler = nil;
     tracker = nil;
     [self willChangeValueForKey:@"operationIsRunning"];
     dispatch_release(waitGroup);
     waitGroup = NULL;
     [self didChangeValueForKey:@"operationIsRunning"];
     [cancelButton setHidden: ! [self operationIsRunning]];
-    [tracker release];
     tracker = nil;
-    [self release];
 }
 
 - (void)progressTrackerDidFinish:(HFProgressTracker *)track {
@@ -217,7 +202,6 @@ static NSView *searchForViewWithIdentifier(NSView *view, NSString *identifier) {
 
 - (void)startOperation:(id (^)(HFProgressTracker *tracker))block completionHandler:(void (^)(id result))handler {
     HFASSERT(! [self operationIsRunning]);
-    startBlock = [block copy];
     completionHandler = [handler copy];
 
     tracker = [[HFProgressTracker alloc] init];
@@ -229,12 +213,11 @@ static NSView *searchForViewWithIdentifier(NSView *view, NSString *identifier) {
     [tracker setProgressIndicator:progressIndicator];
     [tracker beginTrackingProgress];
     
-    [self retain];
     [self willChangeValueForKey:@"operationIsRunning"];
     waitGroup = dispatch_group_create();
     dispatch_group_async(waitGroup, dispatch_get_global_queue(0, 0), ^{
         @autoreleasepool {
-            threadResult = [startBlock(tracker) retain];
+            threadResult = block(tracker);
             [tracker noteFinished:self];
         }
     });

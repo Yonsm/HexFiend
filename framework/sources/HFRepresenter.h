@@ -8,6 +8,8 @@
 #import <Cocoa/Cocoa.h>
 #import <HexFiend/HFController.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 /*! @class HFRepresenter
     @brief The principal view class of Hex Fiend's MVC architecture.
     
@@ -59,7 +61,7 @@
 */
 //@{
 /*! Returns the HFController for the receiver.  This is set by the controller from the call to \c addRepresenter:. A representer can only be in one controller at a time. */
-- (HFController *)controller;
+- (nullable HFController *)controller;
 //@}
 
 /*! @name Property change notifications
@@ -107,13 +109,9 @@
 */
 //@{
 
-/*! Sets the receiver's layout position to the given value.
-*/
-- (void)setLayoutPosition:(NSPoint)position;
 
-/*! Returns the layout position for the receiver.
-*/
-- (NSPoint)layoutPosition;
+/// The layout position for the receiver.
+@property (nonatomic) NSPoint layoutPosition;
 
 /*! Returns the default layout position for representers of this class.  Within the -init method, the view's layout position is set to the default for this class.  You may override this to control the default layout position.  See HFLayoutRepresenter for a discussion of the significance of the layout postition.
 */
@@ -123,3 +121,5 @@
 
 
 @end
+
+NS_ASSUME_NONNULL_END

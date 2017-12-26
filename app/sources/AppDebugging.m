@@ -8,49 +8,6 @@
 #import "AppDebugging.h"
 #import "AppUtilities.h"
 
-@implementation GenericPrompt
-
-- (IBAction)genericPromptOKClicked:sender {
-    USE(sender);
-    [NSApp stopModalWithCode:NSRunStoppedResponse];
-}
-
-- (IBAction)genericPromptCancelClicked:sender {
-    USE(sender);
-    [NSApp stopModalWithCode:NSRunAbortedResponse];
-}
-
-- (id)initWithPromptText:(NSString *)text {
-    self = [super initWithWindowNibName:@"GenericPrompt"];
-    promptText = [text copy];
-    return self;
-}
-
-- (void)windowDidLoad {
-    [super windowDidLoad];
-    [promptField setStringValue:promptText];
-}
-
-- (void)dealloc {
-    [promptText release];
-    [super dealloc];
-}
-
-+ (NSString *)promptForValueWithText:(NSString *)text {
-    NSString *textResult = nil;
-    GenericPrompt *pmpt = [[self alloc] initWithPromptText:text];
-    NSInteger modalResult = [NSApp runModalForWindow:[pmpt window]];
-    if (modalResult == NSRunStoppedResponse) {
-        textResult = [[[pmpt->valueField stringValue] copy] autorelease];
-    }
-    [pmpt close];
-    [pmpt release];
-    return textResult;
-    
-}
-
-@end
-
 static unsigned long long unsignedLongLongValue(NSString *s) {
     unsigned long long result = 0;
     parseNumericStringWithSuffix(s, &result, NULL);
@@ -74,7 +31,21 @@ static unsigned long long unsignedLongLongValue(NSString *s) {
 }
 
 static NSString *promptForValue(NSString *promptText) {
-    return [GenericPrompt promptForValueWithText:promptText];
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = promptText;
+    alert.informativeText = @"";
+    [alert addButtonWithTitle:NSLocalizedString(@"OK", "")];
+    [alert addButtonWithTitle:NSLocalizedString(@"Cancel", "")];
+    NSTextField *textField = [[NSTextField alloc] init];
+    [textField sizeToFit];
+    NSRect frame = textField.frame;
+    frame.size.width = 200;
+    textField.frame = frame;
+    alert.accessoryView = textField;
+    if ([alert runModal] != NSAlertFirstButtonReturn) {
+        return nil;
+    }
+    return textField.stringValue;
 }
 
 - (void)_showByteArray:sender {
@@ -89,9 +60,7 @@ static NSString *promptForValue(NSString *promptText) {
     HFByteSlice *slice = [[clsHFRandomDataByteSlice alloc] initWithRandomDataLength:length];
     HFByteArray *array = [[HFBTreeByteArray alloc] init];
     [array insertByteSlice:slice inRange:HFRangeMake(0, 0)];
-    [slice release];
     [controller insertByteArray:array replacingPreviousBytes:0 allowUndoCoalescing:NO];
-    [array release];
 }
 
 - (void)_tweakByteArray:sender {
@@ -103,7 +72,7 @@ static NSString *promptForValue(NSString *promptText) {
     unsigned i;
     Class clsHFRandomDataByteSlice = NSClassFromString(@"HFRandomDataByteSlice");
     for (i=1; i <= tweakCount; i++) {
-	NSAutoreleasePool* pool=[[NSAutoreleasePool alloc] init];
+	@autoreleasepool {
 	NSUInteger op;
 	const unsigned long long length = [byteArray length];
 	unsigned long long offset;
@@ -113,7 +82,6 @@ static NSString *promptForValue(NSString *promptText) {
 		offset = random() % (1 + length);
 		HFByteSlice* slice = [[clsHFRandomDataByteSlice alloc] initWithRandomDataLength: 1 + random() % 1000];
 		[byteArray insertByteSlice:slice inRange:HFRangeMake(offset, 0)];
-		[slice release];
 		break;
 	    }
 	    case 1: { //delete
@@ -125,10 +93,9 @@ static NSString *promptForValue(NSString *promptText) {
 		break;
 	    }
 	}
-	[pool drain];
+    } // @autoreleasepool
     }
     [controller replaceByteArray:byteArray];
-    [byteArray release];
 }
 
 @end

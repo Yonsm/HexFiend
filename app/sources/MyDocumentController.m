@@ -30,7 +30,7 @@
     BaseDataDocument *result = nil;
     NSArray *documents = [self documents];
     if ([documents count] == 1) {
-        BaseDataDocument *potentialResult = [documents objectAtIndex:0];
+        BaseDataDocument *potentialResult = documents[0];
         if ([potentialResult respondsToSelector:@selector(isTransientAndCanBeReplaced)] && [potentialResult isTransientAndCanBeReplaced]) {
             result = potentialResult;
         }
@@ -51,35 +51,33 @@
 - (void)replaceTransientDocument:(NSArray *)documents {
     // Transient document must be replaced on the main thread, since it may undergo automatic display on the main thread.
     if ([NSThread isMainThread]) {
-        BaseDataDocument *transientDoc = [documents objectAtIndex:0], *doc = [documents objectAtIndex:1];
+        BaseDataDocument *transientDoc = documents[0], *doc = documents[1];
         NSArray *controllersToTransfer = [[transientDoc windowControllers] copy];
-        FOREACH(NSWindowController *, controller, controllersToTransfer) {
+        for(NSWindowController *controller in controllersToTransfer) {
             [doc addWindowController:controller];
             [transientDoc removeWindowController:controller];
             [doc adoptWindowController:controller fromTransientDocument:transientDoc];
         }
         [transientDoc close];
-        [controllersToTransfer release];
-        
     } else {
         [self performSelectorOnMainThread:_cmd withObject:documents waitUntilDone:YES];
     }
 }
 
-- (id)openDocumentWithContentsOfURL:(NSURL *)absoluteURL display:(BOOL)displayDocument error:(NSError **)outError {
+- (void)openDocumentWithContentsOfURL:(NSURL *)url display:(BOOL)displayDocument completionHandler:(void (^)(NSDocument *document, BOOL documentWasAlreadyOpen, NSError *error))completionHandler {
     BaseDataDocument *transientDoc = [self transientDocumentToReplace];
     
     // Don't make NSDocumentController display the NSDocument it creates. Instead, do it later manually to ensure that the transient document has been replaced first.
-    BaseDataDocument *result = [super openDocumentWithContentsOfURL:absoluteURL display:NO error:outError];
-    if (result) {
-        if ([result isKindOfClass:[BaseDataDocument class]] && transientDoc) {
-            [transientDoc setTransient:NO];
-            [self replaceTransientDocument:[NSArray arrayWithObjects:transientDoc, result, nil]];
+    [super openDocumentWithContentsOfURL:url display:NO completionHandler:^(NSDocument *theDocument, BOOL theDocumentWasAlreadyOpen, NSError *theError) {
+        if (theDocument) {
+            if ([theDocument isKindOfClass:[BaseDataDocument class]] && transientDoc) {
+                [transientDoc setTransient:NO];
+                [self replaceTransientDocument:@[transientDoc, theDocument]];
+            }
+            if (displayDocument) [self displayDocument:theDocument];
         }
-        if (displayDocument) [self displayDocument:result];
-    }
-    
-    return result;
+        completionHandler(theDocument, theDocumentWasAlreadyOpen, theError);
+    }];
 }
 
 - (id)openUntitledDocumentAndDisplay:(BOOL)displayDocument error:(NSError **)outError {
@@ -88,6 +86,13 @@
         [doc setTransient:YES];
     }
     return doc;
+}
+
+- (void)beginOpenPanel:(NSOpenPanel *)openPanel forTypes:(NSArray *)inTypes completionHandler:(void (^)(NSInteger result))completionHandler
+{
+    openPanel.treatsFilePackagesAsDirectories = YES;
+    openPanel.showsHiddenFiles = YES;
+    [super beginOpenPanel:openPanel forTypes:inTypes completionHandler:completionHandler];
 }
 
 @end

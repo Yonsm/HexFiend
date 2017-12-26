@@ -58,7 +58,7 @@ static NSBezierPath *copyTeardropPath(void) {
         
         sPath = path;
     }
-    return [sPath retain];
+    return sPath;
 }
 
 
@@ -106,9 +106,7 @@ static Wedge_t wedgeUnion(Wedge_t wedge1, Wedge_t wedge2) {
     return result;
 }
 
-@synthesize byteOffset = byteOffset, representedObject = representedObject, color = color, label = label;
-
-- (id)init {
+- (instancetype)init {
     self = [super init];
     if (self) {
         // Initialization code here.
@@ -117,15 +115,8 @@ static Wedge_t wedgeUnion(Wedge_t wedge1, Wedge_t wedge2) {
     return self;
 }
 
-- (void)dealloc {
-    [representedObject release];
-    [color release];
-    [label release];
-    [super dealloc];
-}
-
 - (NSComparisonResult)compare:(HFRepresenterTextViewCallout *)callout {
-    return [representedObject compare:[callout representedObject]];
+    return [_representedObject compare:callout.representedObject];
 }
 
 static Wedge_t computeForbiddenAngle(double distanceFromEdge, double angleToEdge) {
@@ -184,22 +175,19 @@ static double distanceMod1(double a, double b) {
 
 + (void)layoutCallouts:(NSArray *)callouts inView:(HFRepresenterTextView *)textView {
     
-    // Keep track of how many drops are at a given location
-    NSCountedSet *dropsPerByteLoc = [[NSCountedSet alloc] init];
-    
     const CGFloat lineHeight = [textView lineHeight];
     const NSRect bounds = [textView bounds];
     
-    NSMutableArray *remainingCallouts = [[callouts mutableCopy] autorelease];
+    NSMutableArray *remainingCallouts = [callouts mutableCopy];
     [remainingCallouts sortUsingSelector:@selector(compare:)];
     
     while ([remainingCallouts count] > 0) {
         /* Get the next callout to lay out */
-        const NSInteger byteLoc = [[remainingCallouts objectAtIndex:0] byteOffset];
+        const NSInteger byteLoc = [remainingCallouts[0] byteOffset];
         
         /* Get all the callouts that share that byteLoc */
         NSMutableArray *sharedCallouts = [NSMutableArray array];
-        FOREACH(HFRepresenterTextViewCallout *, testCallout, remainingCallouts) {
+        for(HFRepresenterTextViewCallout *testCallout in remainingCallouts) {
             if ([testCallout byteOffset] == byteLoc) {
                 [sharedCallouts addObject:testCallout];
             }
@@ -278,7 +266,7 @@ static double distanceMod1(double a, double b) {
         
         // store it all, invalidating as necessary
         NSInteger i = 0;
-        FOREACH(HFRepresenterTextViewCallout *, callout, sharedCallouts) {
+        for(HFRepresenterTextViewCallout *callout in sharedCallouts) {
             
             /* Compute the rotation */
             double seq = (i+1)/2; //0, 1, -1, 2, -2...
@@ -315,8 +303,6 @@ static double distanceMod1(double a, double b) {
         /* We're done laying out these callouts */
         [remainingCallouts removeObjectsInArray:sharedCallouts];
     }
-    
-    [dropsPerByteLoc release];
 }
 
 - (CGAffineTransform)teardropTransform {
@@ -355,7 +341,6 @@ static double distanceMod1(double a, double b) {
     [shadow setShadowOffset:NSMakeSize(HFShadowXOffset - HFShadowOffscreenHack, HFShadowYOffset)];
     [shadow setShadowColor:[NSColor colorWithDeviceWhite:0. alpha:.5]];
     [shadow set];
-    [shadow release];
     
     // Draw the shadow first and separately
     CGAffineTransform transform = [self shadowTransform];
@@ -363,7 +348,6 @@ static double distanceMod1(double a, double b) {
     
     NSBezierPath *teardrop = copyTeardropPath();
     [teardrop fill];
-    [teardrop release];
     
     // Clear the shadow
     CGContextSetShadowWithColor(ctx, CGSizeZero, 0, NULL);
@@ -379,12 +363,12 @@ static double distanceMod1(double a, double b) {
     CTFontRef ctfont = CTFontCreateWithName(CFSTR("Helvetica-Bold"), 1., NULL);
     if (ctfont) {
         // Set the font
-        [(NSFont *)ctfont set];
+        [(__bridge NSFont *)ctfont set];
             
         // Get characters
-        NSUInteger labelLength = MIN([label length], kHFRepresenterTextViewCalloutMaxGlyphCount);
+        NSUInteger labelLength = MIN([_label length], kHFRepresenterTextViewCalloutMaxGlyphCount);
         UniChar calloutUniLabel[kHFRepresenterTextViewCalloutMaxGlyphCount];
-        [label getCharacters:calloutUniLabel range:NSMakeRange(0, labelLength)];
+        [_label getCharacters:calloutUniLabel range:NSMakeRange(0, labelLength)];
         
         // Get our glyphs and advances
         CGGlyph glyphs[kHFRepresenterTextViewCalloutMaxGlyphCount];
@@ -399,7 +383,7 @@ static double distanceMod1(double a, double b) {
         }
                 
         // Set our color.
-        [color set];
+        [_color set];
         
         // Draw the pin first
         if (! NSEqualPoints(pinStart, pinEnd)) {
@@ -416,7 +400,6 @@ static double distanceMod1(double a, double b) {
         // Draw the teardrop
         NSBezierPath *teardrop = copyTeardropPath();
         [teardrop fill];
-        [teardrop release];
         
         // Draw the text with white and alpha.  Use blend mode copy so that we clip out the shadow, and when the transparency layer is ended we'll composite over the text.
         CGFloat textScale = (glyphCount == 1 ? 24 : 20);
@@ -442,7 +425,7 @@ static double distanceMod1(double a, double b) {
         // Compute the vertical offset
         CGFloat textYOffset = (glyphCount == 1 ? 4 : 5);                
         // LOL
-        if ([label isEqualToString:@"6"] || [label isEqualToString:@"7"] == 7) textYOffset -= 1;
+        if ([_label isEqualToString:@"6"] || [_label isEqualToString:@"7"] == 7) textYOffset -= 1;
         
         
         // Apply this text matrix

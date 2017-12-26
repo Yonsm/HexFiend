@@ -13,16 +13,11 @@
 
 @implementation HFBTreeByteArray
 
-- (id)init {
+- (instancetype)init {
     if ((self = [super init])) {
         btree = [[HFBTree alloc] init];
     }
     return self;
-}
-
-- (void)dealloc {
-    [btree release];
-    [super dealloc];
 }
 
 - (unsigned long long)length {
@@ -248,16 +243,15 @@ static inline HFByteSlice *findInitialSlice(HFBTree *btree, HFRange *inoutArrayR
 - (id)mutableCopyWithZone:(NSZone *)zone {
     USE(zone);
     HFBTreeByteArray *result = [[[self class] alloc] init];
-    [result->btree release];
     result->btree = [btree mutableCopy];
     return result;
 }
 
 - (id)subarrayWithRange:(HFRange)range {
     if (range.location == 0 && range.length == [self length]) {
-        return [[self mutableCopy] autorelease];
+        return [self mutableCopy];
     }
-    HFBTreeByteArray *result = [[[[self class] alloc] init] autorelease];
+    HFBTreeByteArray *result = [[[self class] alloc] init];
     HFRange remainingRange = range;
     unsigned long long offsetInResult = 0;
     while (remainingRange.length > 0) {

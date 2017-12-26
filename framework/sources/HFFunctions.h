@@ -3,6 +3,11 @@
 #import <HexFiend/HFTypes.h>
 #import <libkern/OSAtomic.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
+#define HFDEFAULT_FONT (@"Monaco")
+#define HFDEFAULT_FONTSIZE ((CGFloat)10.)
+
 #define HFZeroRange (HFRange){0, 0}
 
 /*!
@@ -317,52 +322,39 @@ static inline BOOL HFFPRangeEqualsRange(HFFPRange a, HFFPRange b) {
 
 /*! copysign() for a CGFloat */
 static inline CGFloat HFCopysign(CGFloat a, CGFloat b) {
-#if __LP64__
+#if CGFLOAT_IS_DOUBLE
     return copysign(a, b);
 #else
     return copysignf(a, b);
 #endif
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 /*! Atomically increments an NSUInteger, returning the new value.  Optionally invokes a memory barrier. */
-static inline NSUInteger HFAtomicIncrement(NSUInteger *ptr, BOOL barrier) {
-#if __LP64__
-    
-    // clang doesn't like the change made to the function declaration in the 10.9 SDK.
-    // It now has "inline __attribute__" which combined with the ternary version of this statement
-    // yields linking errors, so we have to expand it:
-    //return (barrier ? OSAtomicIncrement64Barrier : OSAtomicIncrement64)((volatile int64_t *)ptr);
-    
-    if (barrier) {
-        return OSAtomicIncrement64Barrier((volatile int64_t *)ptr);
-    } else {
-        return OSAtomicIncrement64((volatile int64_t *)ptr);
-    }
-    
+static inline NSUInteger HFAtomicIncrement(volatile NSUInteger *ptr, BOOL barrier) {
+    return _Generic(ptr,
+        volatile unsigned *:           (barrier ? OSAtomicIncrement32Barrier : OSAtomicIncrement32)((volatile int32_t *)ptr),
+#if ULONG_MAX == UINT32_MAX
+        volatile unsigned long *:      (barrier ? OSAtomicIncrement32Barrier : OSAtomicIncrement32)((volatile int32_t *)ptr),
 #else
-    return (barrier ? OSAtomicIncrement32Barrier : OSAtomicIncrement32)((volatile int32_t *)ptr);
+        volatile unsigned long *:      (barrier ? OSAtomicIncrement64Barrier : OSAtomicIncrement64)((volatile int64_t *)ptr),
 #endif
+        volatile unsigned long long *: (barrier ? OSAtomicIncrement64Barrier : OSAtomicIncrement64)((volatile int64_t *)ptr));
 }
 
 /*! Atomically decrements an NSUInteger, returning the new value.  Optionally invokes a memory barrier. */
-static inline NSUInteger HFAtomicDecrement(NSUInteger *ptr, BOOL barrier) {
-#if __LP64__
-    
-    // clang doesn't like the change made to the function declaration in the 10.9 SDK.
-    // It now has "inline __attribute__" which combined with the ternary version of this statement
-    // yields linking errors, so we have to expand it:
-    //return (barrier ? OSAtomicIncrement64Barrier : OSAtomicIncrement64)((volatile int64_t *)ptr);
-    
-    if (barrier) {
-        return OSAtomicDecrement64Barrier((volatile int64_t *)ptr);
-    } else {
-        return OSAtomicDecrement64((volatile int64_t *)ptr);
-    }
-    
+static inline NSUInteger HFAtomicDecrement(volatile NSUInteger *ptr, BOOL barrier) {
+    return _Generic(ptr,
+        volatile unsigned *:           (barrier ? OSAtomicDecrement32Barrier : OSAtomicDecrement32)((volatile int32_t *)ptr),
+#if ULONG_MAX == UINT32_MAX
+        volatile unsigned long *:      (barrier ? OSAtomicDecrement32Barrier : OSAtomicDecrement32)((volatile int32_t *)ptr),
 #else
-    return (barrier ? OSAtomicDecrement32Barrier : OSAtomicDecrement32)((volatile int32_t *)ptr);
+        volatile unsigned long *:      (barrier ? OSAtomicDecrement64Barrier : OSAtomicDecrement64)((volatile int64_t *)ptr),
 #endif
+        volatile unsigned long long *: (barrier ? OSAtomicDecrement64Barrier : OSAtomicDecrement64)((volatile int64_t *)ptr));
 }
+#pragma clang diagnostic pop
 
 /*! Converts a long double to unsigned long long.  Assumes that val is already an integer - use floorl or ceill */
 static inline unsigned long long HFFPToUL(long double val) {
@@ -398,7 +390,7 @@ static inline NSUInteger HFCountDigitsBase10(unsigned long long val) {
             high = mid;
         }
     }
-    return MAX(1, low);
+    return MAX(1u, low);
 }
 
 /*! Returns 1 + floor(log base 16 of val).  If val is 0, returns 1.  This works by computing the log base 2 based on the number of leading zeros, and then dividing by 4. */
@@ -412,14 +404,14 @@ static inline NSUInteger HFCountDigitsBase16(unsigned long long val) {
     return 1 + logBase2/4;
 }
 
-/*! Returns YES if the given string encoding is a superset of ASCII. */
-BOOL HFStringEncodingIsSupersetOfASCII(NSStringEncoding encoding);
-
 /*! Returns the "granularity" of an encoding, in bytes.  ASCII is 1, UTF-16 is 2, etc.  Variable width encodings return the smallest (e.g. Shift-JIS returns 1). */
 uint8_t HFStringEncodingCharacterLength(NSStringEncoding encoding);
 
 /*! Converts an unsigned long long to NSUInteger.  The unsigned long long should be no more than ULONG_MAX. */
-static inline unsigned long ll2l(unsigned long long val) { assert(val <= ULONG_MAX); return (unsigned long)val; }
+static inline NSUInteger ll2l(unsigned long long val) { assert(val <= ULONG_MAX); return (unsigned long)val; }
+
+/*! Converts an unsigned long long to uintptr_t.  The unsigned long long should be no more than UINTPTR_MAX. */
+static inline uintptr_t ll2p(unsigned long long val) { assert(val <= UINTPTR_MAX); return (uintptr_t)val; }
 
 /*! Returns an unsigned long long, which must be no more than ULLONG_MAX, as an unsigned long. */
 static inline CGFloat ld2f(long double val) {
@@ -484,7 +476,57 @@ NSString *HFDescribeByteCount(unsigned long long count);
 
 @end
 
-#ifndef NDEBUG
-void HFStartTiming(const char *name);
-void HFStopTiming(void);
-#endif
+/*! @brief A set of HFRanges. HFRangeSet takes the interpetation that all zero-length ranges are identical.
+ 
+ Essentially, a mutable array of ranges that is maintained to be sorted and minimized (i.e. merged with overlapping neighbors).
+ 
+ TODO: The HexFiend codebase currently uses arrays of HFRangeWrappers that have been run through organizeAndMergeRanges:, and not HFRangeSet. The advantage of HFRangeSet is that the sorting & merging is implied by the type, instead of just tacitly assumed. This should lead to less confusion and fewer extra applications of organizeAndMergeRanges.
+ 
+ TODO: HFRangeSet needs to be tested! I guarantee it has bugs! (Which doesn't matter right now because it's all dead code...)
+ */
+@interface HFRangeSet : NSObject <NSCopying, NSSecureCoding> {
+    @private
+    CFMutableArrayRef array;
+}
+
+/*! Create a range set with just one range. */
++ (HFRangeSet *)withRange:(HFRange)range;
+
+/*! Create a range set with a C array of ranges. No prior sorting is necessary. */
++ (HFRangeSet *)withRanges:(const HFRange *)ranges count:(NSUInteger)count;
+
+/*! Create a range set with an array of HFRangeWrappers. No prior sorting is necessary. */
++ (HFRangeSet *)withRangeWrappers:(NSArray *)ranges;
+
+/*! Create a range set as a copy of another. */
++ (HFRangeSet *)withRangeSet:(HFRangeSet *)rangeSet;
+
+/*! Equivalent to HFRangeSet *x = [HFRangeSet withRange:range]; [x removeRange:rangeSet]; */
++ (HFRangeSet *)complementOfRangeSet:(HFRangeSet *)rangeSet inRange:(HFRange)range;
+
+- (void)addRange:(HFRange)range;    /*!< Union with range */
+- (void)removeRange:(HFRange)range; /*!< Subtract range */
+- (void)clipToRange:(HFRange)range; /*!< Intersect with range */
+- (void)toggleRange:(HFRange)range; /*!< Symmetric difference with range */
+
+- (void)addRangeSet:(HFRangeSet *)rangeSet;    /*!< Union with range set */
+- (void)removeRangeSet:(HFRangeSet *)rangeSet; /*!< Subtract range set */
+- (void)clipToRangeSet:(HFRangeSet *)rangeSet; /*!< Intersect with range set */
+- (void)toggleRangeSet:(HFRangeSet *)rangeSet; /*!< Symmetric difference with range set */
+
+
+- (BOOL)isEqualToRangeSet:(HFRangeSet *)rangeSet; /*!< Test if two range sets are equivalent. */
+- (BOOL)isEmpty;                                  /*!< Test if range set is empty. */
+
+- (BOOL)containsAllRange:(HFRange)range;             /*!< Check if the range set covers all of a range. Always true if 'range' is zero length. */
+- (BOOL)overlapsAnyRange:(HFRange)range;             /*!< Check if the range set covers any of a range. Never true if 'range' is zero length. */
+- (BOOL)containsAllRangeSet:(HFRangeSet *)rangeSet;  /*!< Check if this range is a superset of another. */
+- (BOOL)overlapsAnyRangeSet:(HFRangeSet *)rangeSet;  /*!< Check if this range has a nonempty intersection with another. */
+
+- (HFRange)spanningRange;  /*!< Return a single range that covers the entire range set */
+
+- (void)assertIntegrity;
+
+@end
+
+NS_ASSUME_NONNULL_END

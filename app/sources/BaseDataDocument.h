@@ -8,16 +8,16 @@
 #import <Cocoa/Cocoa.h>
 #import "DocumentWindow.h"
 
-@class HFByteArray, HFRepresenter, HFLineCountingRepresenter, HFLayoutRepresenter, HFDocumentOperationView, DataInspectorRepresenter;
+@class HFByteArray, HFRepresenter, HFHexTextRepresenter, HFLineCountingRepresenter, HFLayoutRepresenter, HFDocumentOperationView, DataInspectorRepresenter;
 
-NSString * const BaseDataDocumentDidChangeStringEncodingNotification;
+extern NSString * const BaseDataDocumentDidChangeStringEncodingNotification;
 
-@interface BaseDataDocument : NSDocument <NSWindowDelegate, DragDropDelegate> {
+@interface BaseDataDocument : NSDocument <NSWindowDelegate, DragDropDelegate, NSSplitViewDelegate> {
     IBOutlet NSSplitView *containerView;
     HFController *controller;
     
     HFLineCountingRepresenter *lineCountingRepresenter;
-    HFRepresenter *hexRepresenter;
+    HFHexTextRepresenter *hexRepresenter;
     HFRepresenter *asciiRepresenter;
     HFRepresenter *scrollRepresenter;
     HFRepresenter *textDividerRepresenter;
@@ -43,7 +43,8 @@ NSString * const BaseDataDocumentDidChangeStringEncodingNotification;
     CGFloat bannerTargetHeight;
     CFAbsoluteTime bannerStartTime;
     id targetFirstResponderInBanner;
-    SEL commandToRunAfterBannerIsDoneHiding;
+    dispatch_block_t commandToRunAfterBannerIsDoneHiding;
+    dispatch_block_t commandToRunAfterBannerPrepared;
     
     BOOL saveInProgress;
     
@@ -53,6 +54,10 @@ NSString * const BaseDataDocumentDidChangeStringEncodingNotification;
     BOOL shouldLiveReload;
     NSDate *liveReloadDate;
     NSTimer *liveReloadTimer;
+    
+    NSUInteger cleanGenerationCount;
+
+    BOOL loadingWindow;
 }
 
 - (void)moveSelectionForwards:(NSMenuItem *)sender;
@@ -61,8 +66,8 @@ NSString * const BaseDataDocumentDidChangeStringEncodingNotification;
 
 - (IBAction)moveSelectionByAction:(id)sender;
 
+@property (nonatomic, copy) NSFont *font;
 - (void)setFont:(NSFont *)font registeringUndo:(BOOL)undo;
-- (NSFont *)font;
 
 - (IBAction)increaseFontSize:(id)sender;
 - (IBAction)decreaseFontSize:(id)sender;
@@ -84,10 +89,12 @@ NSString * const BaseDataDocumentDidChangeStringEncodingNotification;
 - (IBAction)setInsertMode:sender;
 - (IBAction)setReadOnlyMode:sender;
 - (IBAction)modifyByteGrouping:sender;
+- (IBAction)setLineNumberFormat:(id)sender;
 
 - (IBAction)setBookmark:sender;
 - (IBAction)deleteBookmark:sender;
 
++ (HFByteArray *)byteArrayfromURL:(NSURL *)absoluteURL error:(NSError **)outError;
 - (HFByteArray *)byteArray; //accessed during diffing
 
 - (BOOL)isTransientAndCanBeReplaced; //like TextEdit
@@ -97,23 +104,20 @@ NSString * const BaseDataDocumentDidChangeStringEncodingNotification;
 
 - (HFDocumentOperationView *)newOperationViewForNibName:(NSString *)name displayName:(NSString *)displayName fixedHeight:(BOOL)fixedHeight;
 - (void)prepareBannerWithView:(HFDocumentOperationView *)newSubview withTargetFirstResponder:(id)targetFirstResponder;
-- (void)hideBannerFirstThenDo:(SEL)command;
+- (void)hideBannerFirstThenDo:(dispatch_block_t)command;
 - (NSArray *)runningOperationViews;
 
-- (NSStringEncoding)stringEncoding;
-- (void)setStringEncoding:(NSStringEncoding)encoding;
+@property (nonatomic) NSStringEncoding stringEncoding;
 - (IBAction)setStringEncodingFromMenuItem:(NSMenuItem *)item;
 
-- (BOOL)isTransient;
-- (void)setTransient:(BOOL)flag;
+@property (nonatomic, getter=isTransient) BOOL transient;
 
 /* Returns a string identifier used as an NSUserDefault prefix for storing the layout for documents of this type.  If you return nil, the layout will not be stored.  The default is to return the class name. */
 + (NSString *)layoutUserDefaultIdentifier;
 
 - (BOOL)requiresOverwriteMode;
 
-- (BOOL)shouldLiveReload;
-- (void)setShouldLiveReload:(BOOL)flag;
+@property (nonatomic) BOOL shouldLiveReload;
 - (IBAction)setLiveReloadFromMenuItem:sender;
 
 @end

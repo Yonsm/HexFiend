@@ -7,6 +7,41 @@
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Data</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>NSDocumentClass</key>
+			<string>FileDataDocument</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Other</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.executable</string>
+				<string>public.text</string>
+				<string>public.archive</string>
+				<string>public.disk-image</string>
+				<string>public.image</string>
+				<string>public.audio</string>
+				<string>public.movie</string>
+				<string>com.adobe.pdf</string>
+			</array>
+			<key>NSDocumentClass</key>
+			<string>FileDataDocument</string>
+		</dict>
+		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>*</string>
@@ -19,6 +54,8 @@
 			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
 			<key>NSDocumentClass</key>
 			<string>FileDataDocument</string>
 		</dict>
@@ -28,7 +65,7 @@
 	<key>CFBundleIconFile</key>
 	<string>hex_icon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.ridiculousfish.HexFiend</string>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -36,27 +73,27 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.2.0</string>
+	<string>2.9</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>300</string>
+	<string>0</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>SUPublicDSAKeyFile</key>
-	<string>dsa_pub.pem</string>
-	<key>SUFeedURL</key>
-	<string>https://raw.github.com/ridiculousfish/HexFiend/master/app/appcast.xml</string>
 	<key>NSSupportsSuddenTermination</key>
 	<string>YES</string>
 	<key>SMPrivilegedExecutables</key>
 	<dict>
 		<key>com.ridiculousfish.HexFiend.PrivilegedHelper</key>
-		<string>identifier com.ridiculousfish.HexFiend.PrivilegedHelper and certificate leaf[subject.CN] = &quot;Hex Fiend&quot;</string>
+		<string>identifier com.ridiculousfish.HexFiend.PrivilegedHelper and certificate leaf[subject.CN] = &quot;$(CODE_SIGN_IDENTITY)&quot;</string>
 	</dict>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/ridiculousfish/HexFiend/master/app/appcast.xml</string>
+	<key>SUPublicDSAKeyFile</key>
+	<string>dsa_pub.pem</string>
 </dict>
 </plist>

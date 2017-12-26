@@ -7,12 +7,14 @@
 
 #import <Cocoa/Cocoa.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class HFByteSlice, HFFileReference, HFProgressTracker;
 
-typedef enum {
+typedef NS_ENUM(NSInteger, HFByteSliceWriteError) {
 	HFWriteSuccess,
 	HFWriteCancelled
-} HFByteSliceWriteError;
+};
 
 @interface HFByteSliceFileOperation : NSObject {
     HFRange targetRange;
@@ -28,6 +30,8 @@ typedef enum {
 - (HFRange)targetRange;
 
 - (unsigned long long)costToWrite;
-- (HFByteSliceWriteError)writeToFile:(HFFileReference *)file trackingProgress:(HFProgressTracker *)progressTracker error:(NSError **)error;
+- (HFByteSliceWriteError)writeToFile:(HFFileReference *)file trackingProgress:(nullable HFProgressTracker *)progressTracker error:(NSError **)error;
 
 @end
+
+NS_ASSUME_NONNULL_END

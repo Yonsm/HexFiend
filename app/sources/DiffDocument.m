@@ -37,7 +37,7 @@
 + (NSArray *)getFrontTwoDocumentsForDiffing {
     id resultDocs[2];
     NSUInteger i = 0;
-    FOREACH(NSDocument *, doc, [NSApp orderedDocuments]) {
+    for(NSDocument *doc in [NSApp orderedDocuments]) {
         if ([doc isKindOfClass:[DiffDocument class]]) continue;
         if (![doc isKindOfClass:[BaseDataDocument class]]) continue;
         resultDocs[i++] = doc;
@@ -52,11 +52,13 @@
 }
 
 + (void)compareDocument:(BaseDataDocument *)document againstDocument:(BaseDataDocument *)otherDocument usingRange:(HFRange)range {
-    
     // convert documents to bytearrays
     HFByteArray *leftBytes = [document byteArray];
     HFByteArray *rightBytes = [otherDocument byteArray];
-    
+    [self compareByteArray:leftBytes againstByteArray:rightBytes usingRange:range leftFileName:[document displayName] rightFileName:[otherDocument displayName]];
+}
+
++ (void)compareByteArray:(HFByteArray *)leftBytes againstByteArray:(HFByteArray *)rightBytes usingRange:(HFRange)range leftFileName:(NSString *)leftFileName rightFileName:(NSString *)rightFileName {
     // extract range if present
     if (range.length > 0) {
         leftBytes = [leftBytes subarrayWithRange:range];
@@ -65,12 +67,11 @@
     
     // launch diff window
     DiffDocument *doc = [[DiffDocument alloc] initWithLeftByteArray:leftBytes rightByteArray:rightBytes range:range];
-    [doc setLeftFileName:[document displayName]];
-    [doc setRightFileName:[otherDocument displayName]];
+    doc.leftFileName = leftFileName;
+    doc.rightFileName = rightFileName;
     [[NSDocumentController sharedDocumentController] addDocument:doc];
     [doc makeWindowControllers];
     [doc showWindows];
-    [doc release];
 }
 
 + (void)compareFrontTwoDocuments {
@@ -80,7 +81,7 @@
 + (void)compareFrontTwoDocumentsUsingRange:(HFRange)range {
     NSArray *docs = [DiffDocument getFrontTwoDocumentsForDiffing];
     if (!docs) return;
-    [DiffDocument compareDocument:[docs objectAtIndex:0] againstDocument:[docs objectAtIndex:1] usingRange:range];
+    [DiffDocument compareDocument:docs[0] againstDocument:docs[1] usingRange:range];
 }
 
 - (NSString *)displayName {
@@ -89,7 +90,7 @@
         format = [NSString stringWithFormat:@"(%llu:%llu) %@", range_.location, range_.length, format];
     }
     
-    return [NSString stringWithFormat:format, leftFileName, rightFileName];
+    return [NSString stringWithFormat:format, _leftFileName, _rightFileName];
 }
 
 - (void)showInstructionsFromEditScript {
@@ -131,7 +132,7 @@
 }
 
 - (HFTextRepresenter *)textRepresenterFromTextView:(HFTextView *)textView {
-    FOREACH(HFRepresenter *, rep, [[textView controller] representers]) {
+    for(HFRepresenter *rep in [textView controller].representers) {
         if ([rep isKindOfClass:[HFTextRepresenter class]]) {
             return (HFTextRepresenter *)rep;
         }
@@ -326,7 +327,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
     return handled;
 }
 
-- (id)initWithLeftByteArray:(HFByteArray *)left rightByteArray:(HFByteArray *)right {
+- (instancetype)initWithLeftByteArray:(HFByteArray *)left rightByteArray:(HFByteArray *)right {
     if ((self = [super init])) {
         leftBytes = [left mutableCopy];
         rightBytes = [right mutableCopy];
@@ -342,7 +343,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
     return self;
 }
 
-- (id)initWithLeftByteArray:(HFByteArray *)left rightByteArray:(HFByteArray *)right range:(HFRange)range {
+- (instancetype)initWithLeftByteArray:(HFByteArray *)left rightByteArray:(HFByteArray *)right range:(HFRange)range {
     range_ = range;
     return [self initWithLeftByteArray:left rightByteArray:right];
 }
@@ -350,13 +351,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self name:HFControllerDidChangePropertiesNotification object:[rightTextView controller]];
     [[NSNotificationCenter defaultCenter] removeObserver:self name:HFControllerDidChangePropertiesNotification object:[leftTextView controller]];
-    [leftBytes release];
-    [rightBytes release];
-    [leftFileName release];
-    [rightFileName release];
     [diffComputationView removeObserver:self forKeyPath:@"progress"];
-    [diffComputationView release];
-    [super dealloc];
 }
 
 /* Diff documents never show a divider */
@@ -514,7 +509,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
     NSUInteger count = [selectedRanges count];
     NSMutableArray *correspondingRanges = [[NSMutableArray alloc] initWithCapacity:count];
     BOOL hasZeroLengthRange = NO, hasNonzeroLengthRange = NO;
-    FOREACH(HFRangeWrapper *, rangeWrapper, selectedRanges) {
+    for(HFRangeWrapper *rangeWrapper in selectedRanges) {
         HFRange range = [rangeWrapper HFRange];
         unsigned long long correspondingStartByte = [self lastCorrespondingByteBeforeByte:range.location onLeft:leftToRight];
         unsigned long long correspondingEndByte = [self lastCorrespondingByteBeforeByte:HFMaxRange(range) onLeft:leftToRight];
@@ -529,7 +524,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
         /* Remove all zero length ranges */
         NSUInteger i = count;
         while (i--) {
-            HFRange testRange = [[correspondingRanges objectAtIndex:i] HFRange];
+            HFRange testRange = [correspondingRanges[i] HFRange];
             if (testRange.length == 0) [correspondingRanges removeObjectAtIndex:i];
         }
     } else if (hasZeroLengthRange && count > 1) {
@@ -541,22 +536,17 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
     
     /* Now apply them */
     if ([correspondingRanges count] > 0) [dstController setSelectedContentsRanges:correspondingRanges];
-    [correspondingRanges release];
 }
 
 - (void)synchronizeControllers:(NSNotification *)note {
     /* Set and check synchronizingControllers to avoid recursive invocations */
     if (synchronizingControllers) return;
     synchronizingControllers = YES;
-    NSNumber *propertyNumber = [[note userInfo] objectForKey:HFControllerChangedPropertiesKey];
+    NSNumber *propertyNumber = [note userInfo][HFControllerChangedPropertiesKey];
     HFController *changedController = [note object];
     HFASSERT(changedController == [leftTextView controller] || changedController == [rightTextView controller]);
     BOOL controllerIsLeft = (changedController == [leftTextView controller]);
-#if __LP64__
     HFControllerPropertyBits propertyMask = [propertyNumber unsignedIntegerValue];
-#else
-    HFControllerPropertyBits propertyMask = [propertyNumber unsignedIntValue];
-#endif
     
     /* Update the overlay view to react to things like the bytes per line changing. */
     if (propertyMask & [self propertiesAffectingOverlayView]) {
@@ -570,7 +560,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
         /* If the user clicks on a range containing a diff, jump to that in the table */
         NSArray *ranges = [changedController selectedContentsRanges];
         if ([ranges count] == 1) {
-            HFRange selectedRange = [[ranges objectAtIndex:0] HFRange];
+            HFRange selectedRange = [ranges[0] HFRange];
             if (selectedRange.length == 0) {
                 NSUInteger insnIndex = [self indexOfInstructionContainingOrAfterIndex:selectedRange.location onLeft:controllerIsLeft];
                 if (insnIndex != NSNotFound) {
@@ -591,7 +581,8 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
         [self synchronizeController:[rightTextView controller] properties:propertyMask];
     }
 #endif
-    if (0 && propertyMask & HFControllerDisplayedLineRange) {
+#if 0
+    if (propertyMask & HFControllerDisplayedLineRange) {
         /* Scroll our table view to show the instruction.  If our focused instruction is not visible, scroll to it; otherwise scroll to the first visible one. */
         NSRange visibleInstructions = [self visibleInstructionRangeInController:changedController];
         
@@ -604,6 +595,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
         }
         
     }
+#endif
 
     synchronizingControllers = NO;
 }
@@ -617,12 +609,8 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
 }
 
 - (void)updateOverlayViewForChangedLeftScroller:(NSNotification *)note {
-    NSNumber *propertyNumber = [[note userInfo] objectForKey:HFControllerChangedPropertiesKey];
-#if __LP64__
+    NSNumber *propertyNumber = [note userInfo][HFControllerChangedPropertiesKey];
     HFControllerPropertyBits propertyMask = [propertyNumber unsignedIntegerValue];
-#else
-    HFControllerPropertyBits propertyMask = [propertyNumber unsignedIntValue];
-#endif
     if (propertyMask & [self propertiesAffectingOverlayView]) {
         [self updateInstructionOverlayView];
     }
@@ -642,7 +630,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
     [[textView layoutRepresenter] setMaximizesBytesPerLine:YES];
     
     /* Remove the representers we don't want */
-    FOREACH(HFRepresenter *, rep, [[textView layoutRepresenter] representers]) {
+    for(HFRepresenter *rep in [textView layoutRepresenter].representers) {
         if ([rep isKindOfClass:[HFVerticalScrollerRepresenter class]] || [rep isKindOfClass:[HFStringEncodingTextRepresenter class]] || [rep isKindOfClass:[HFStatusBarRepresenter class]] || [rep isKindOfClass:[DataInspectorRepresenter class]]) {
             [[textView layoutRepresenter] removeRepresenter:rep];
             [[textView controller] removeRepresenter:rep];
@@ -661,7 +649,6 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
         HFLineCountingRepresenter *lineCounter = [[HFLineCountingRepresenter alloc] init];
         [[leftTextView controller] addRepresenter:lineCounter];
         [[leftTextView layoutRepresenter] addRepresenter:lineCounter];
-        [lineCounter release];	
     }
     
     /* It's not editable */
@@ -680,7 +667,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
     [leftBytes incrementChangeLockCounter];
     [rightBytes incrementChangeLockCounter];
     [diffComputationView startOperation:^id(HFProgressTracker *tracker) {
-        return [[[HFByteArrayEditScript alloc] initWithDifferenceFromSource:leftBytes toDestination:rightBytes trackingProgress:tracker] autorelease];
+        return [[HFByteArrayEditScript alloc] initWithDifferenceFromSource:leftBytes toDestination:rightBytes trackingProgress:tracker];
     } completionHandler:^(id script) {
         [leftBytes decrementChangeLockCounter];
         [rightBytes decrementChangeLockCounter];
@@ -693,7 +680,7 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
             /* Hide the script banner */
             if (operationView != nil && operationView == diffComputationView) [self hideBannerFirstThenDo:NULL];
             
-            editScript = [script retain];
+            editScript = script;
             [self showInstructionsFromEditScript];	
         }
     }];
@@ -745,7 +732,6 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
     [overlayView setLeftView:leftTextView];
     [overlayView setRightView:rightTextView];
     [[window contentView] addSubview:overlayView];
-    [overlayView release];
     
     /* Update our window size so it's the right size for our data */
     NSRect windowFrame = [window frame];
@@ -766,28 +752,6 @@ static enum DiffOverlayViewRangeType_t rangeTypeForValue(CGFloat value) {
     [super setFont:font registeringUndo:undo];
     [[leftTextView controller] setFont:font];
     [[self window] enableFlushWindow];
-}
-
-- (void)setLeftFileName:(NSString *)val {
-    if (val != leftFileName) {
-        [leftFileName release];
-        leftFileName = [val copy];
-    }
-}
-
-- (NSString *)leftFileName {
-    return leftFileName;
-}
-
-- (void)setRightFileName:(NSString *)val {
-    if (val != rightFileName) {
-        [rightFileName release];
-        rightFileName = [val copy];
-    }    
-}
-
-- (NSString *)rightFileName {
-    return rightFileName;
 }
 
 #pragma mark NSTableView methods

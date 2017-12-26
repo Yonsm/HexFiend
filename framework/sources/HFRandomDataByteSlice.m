@@ -54,7 +54,7 @@ static inline unsigned char munge(unsigned long long val64, const unsigned char 
 
 @implementation HFRandomDataByteSlice
 
-- (id)initWithLength:(unsigned long long)len pearsonTable:(NSData *)table {
+- (instancetype)initWithLength:(unsigned long long)len pearsonTable:(NSData *)table {
     self = [super init];
     start = 0;
     length = len;
@@ -62,10 +62,9 @@ static inline unsigned char munge(unsigned long long val64, const unsigned char 
     return self;
 }
 
-- (id)initWithRandomDataLength:(unsigned long long)len {
+- (instancetype)initWithRandomDataLength:(unsigned long long)len {
     NSData *table = createPearsonTable();
     self = [self initWithLength:len pearsonTable:table];
-    [table release];
     return self;
 }
 
@@ -111,7 +110,7 @@ static inline unsigned char munge(unsigned long long val64, const unsigned char 
 
 - (HFByteSlice *)subsliceWithRange:(HFRange)range {
     HFASSERT(HFRangeIsSubrangeOfRange(range, HFRangeMake(0, length)));
-    HFRandomDataByteSlice *result = [[[[self class] alloc] initWithLength:range.length pearsonTable:pearsonTable] autorelease];
+    HFRandomDataByteSlice *result = [[[self class] alloc] initWithLength:range.length pearsonTable:pearsonTable];
     result->start = self->start + range.location;
     return result;
 }
@@ -136,7 +135,7 @@ static unsigned char *kRepeatingData;
     }
 }
 
-- (id)initWithRepeatingDataLength:(unsigned long long)len {
+- (instancetype)initWithRepeatingDataLength:(unsigned long long)len {
     self = [super init];
     start = 0;
     length = len;
@@ -164,7 +163,7 @@ static unsigned char *kRepeatingData;
 
 - (HFByteSlice *)subsliceWithRange:(HFRange)range {
     HFASSERT(HFRangeIsSubrangeOfRange(range, HFRangeMake(0, length)));
-    HFRepeatingDataByteSlice *result = [[[[self class] alloc] initWithRepeatingDataLength:range.length] autorelease];
+    HFRepeatingDataByteSlice *result = [[[self class] alloc] initWithRepeatingDataLength:range.length];
     result->start = range.location;
     return result;
 }

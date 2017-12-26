@@ -9,13 +9,14 @@
 #import <HexFiend/HFLineCountingView.h>
 
 NSString *const HFLineCountingRepresenterMinimumViewWidthChanged = @"HFLineCountingRepresenterMinimumViewWidthChanged";
+NSString *const HFLineCountingRepresenterCycledLineNumberFormat = @"HFLineCountingRepresenterCycledLineNumberFormat";
+
 
 /* Returns the maximum advance in points for a hexadecimal digit for the given font (interpreted as a screen font) */
 static CGFloat maximumDigitAdvanceForFont(NSFont *font) {
     REQUIRE_NOT_NULL(font);
     font = [font screenFont];
     CGFloat maxDigitAdvance = 0;
-    NSDictionary *attributesDictionary = [[NSDictionary alloc] initWithObjectsAndKeys:font, NSFontAttributeName, nil];
     NSTextStorage *storage = [[NSTextStorage alloc] init];
     NSLayoutManager *manager = [[NSLayoutManager alloc] init];
     [storage setFont:font];
@@ -29,17 +30,12 @@ static CGFloat maximumDigitAdvanceForFont(NSFont *font) {
         char c = "0123456789ABCDEF"[i];
         NSString *string = [[NSString alloc] initWithBytes:&c length:1 encoding:NSASCIIStringEncoding];
         [storage replaceCharactersInRange:NSMakeRange(0, (i ? 1 : 0)) withString:string];
-        [string release];
         glyphs[i] = [manager glyphAtIndex:0 isValidIndex:NULL];
         HFASSERT(glyphs[i] != NSNullGlyph);
     }
     
     /* Get the advancements of each of those glyphs */
     [font getAdvancements:advancements forGlyphs:glyphs count:sizeof glyphs / sizeof *glyphs];
-    
-    [manager release];
-    [attributesDictionary release];
-    [storage release];
     
     /* Find the widest digit */
     for (NSUInteger i=0; i < sizeof glyphs / sizeof *glyphs; i++) {
@@ -50,15 +46,15 @@ static CGFloat maximumDigitAdvanceForFont(NSFont *font) {
 
 @implementation HFLineCountingRepresenter
 
-- (id)init {
+- (instancetype)init {
     if ((self = [super init])) {
         minimumDigitCount = 2;
         digitsToRepresentContentsLength = minimumDigitCount;
         interiorShadowEdge = NSMaxXEdge;
         
-        borderedEdges = (1 << NSMaxXEdge);
-        borderColor = [[NSColor darkGrayColor] retain];
-        backgroundColor = [[NSColor colorWithCalibratedWhite:(CGFloat).87 alpha:1] retain];
+        _borderedEdges = (1 << NSMaxXEdge);
+        _borderColor = [NSColor darkGrayColor];
+        _backgroundColor = [NSColor colorWithCalibratedWhite:(CGFloat).87 alpha:1];
     }
     return self;
 }
@@ -69,41 +65,23 @@ static CGFloat maximumDigitAdvanceForFont(NSFont *font) {
     [coder encodeDouble:lineHeight forKey:@"HFLineHeight"];
     [coder encodeInt64:minimumDigitCount forKey:@"HFMinimumDigitCount"];
     [coder encodeInt64:lineNumberFormat forKey:@"HFLineNumberFormat"];
-    [coder encodeObject:backgroundColor forKey:@"HFBackgroundColor"];
-    [coder encodeObject:borderColor forKey:@"HFBackgroundColor"];
-    [coder encodeInt64:borderedEdges forKey:@"HFBorderedEdges"];
+    [coder encodeObject:self.backgroundColor forKey:@"HFBackgroundColor"];
+    [coder encodeObject:self.borderColor forKey:@"HFBorderColor"];
+    [coder encodeInt64:self.borderedEdges forKey:@"HFBorderedEdges"];
 }
 
-- (id)initWithCoder:(NSCoder *)coder {
+- (instancetype)initWithCoder:(NSCoder *)coder {
     HFASSERT([coder allowsKeyedCoding]);
     self = [super initWithCoder:coder];
     lineHeight = (CGFloat)[coder decodeDoubleForKey:@"HFLineHeight"];
     minimumDigitCount = (NSUInteger)[coder decodeInt64ForKey:@"HFMinimumDigitCount"];
     lineNumberFormat = (HFLineNumberFormat)[coder decodeInt64ForKey:@"HFLineNumberFormat"];
     
-    if ([coder decodeObjectForKey:@"HFBorderedEdges"]) {
-        borderedEdges = (NSInteger)[coder decodeInt64ForKey:@"HFBorderedEdges"];
-    } else {
-        borderedEdges = 0;
-    }
-    
-    borderColor = [[coder decodeObjectForKey:@"HFBorderColor"] retain];
-    if (!borderColor) {
-        borderColor = [[NSColor darkGrayColor] retain];
-    }
-    
-    backgroundColor = [[coder decodeObjectForKey:@"HFBackgroundColor"] retain];
-    if (!backgroundColor) {
-        backgroundColor = [[NSColor colorWithCalibratedWhite:(CGFloat).87 alpha:1] retain];
-    }
+    _borderedEdges = [coder decodeObjectForKey:@"HFBorderedEdges"] ? (NSInteger)[coder decodeInt64ForKey:@"HFBorderedEdges"] : 0;
+    _borderColor = [coder decodeObjectForKey:@"HFBorderColor"] ?: [NSColor darkGrayColor];
+    _backgroundColor = [coder decodeObjectForKey:@"HFBackgroundColor"] ?: [NSColor colorWithCalibratedWhite:(CGFloat).87 alpha:1];
     
     return self;
-}
-
-- (void)dealloc {
-    [borderColor release];
-    [backgroundColor release];
-    [super dealloc];
 }
 
 - (NSView *)createView {
@@ -128,9 +106,9 @@ static CGFloat maximumDigitAdvanceForFont(NSFont *font) {
 - (void)updateFontAndLineHeight {
     HFLineCountingView *view = [self view];
     HFController *controller = [self controller];
-    NSFont *font = controller ? [controller font] : [NSFont fontWithName:@"Monaco" size:(CGFloat)10.];
+    NSFont *font = controller ? [controller font] : [NSFont fontWithName:HFDEFAULT_FONT size:HFDEFAULT_FONTSIZE];
     [view setFont:font];
-    [view setLineHeight: controller ? [controller lineHeight] : (CGFloat)10.];
+    [view setLineHeight: controller ? [controller lineHeight] : HFDEFAULT_FONTSIZE];
     [self updateDigitAdvanceWithFont:font];
 }
 
@@ -197,6 +175,7 @@ static CGFloat maximumDigitAdvanceForFont(NSFont *font) {
     lineNumberFormat = (lineNumberFormat + 1) % HFLineNumberFormatMAXIMUM;
     [self updateLineNumberFormat];
     [self updateMinimumViewWidth];
+    [[NSNotificationCenter defaultCenter] postNotificationName:HFLineCountingRepresenterCycledLineNumberFormat object:self];
 }
 
 - (void)initializeView {
@@ -244,39 +223,17 @@ static CGFloat maximumDigitAdvanceForFont(NSFont *font) {
 
 
 - (void)setBorderColor:(NSColor *)color {
-    [borderColor autorelease];
-    borderColor = [color retain];
+    _borderColor = [color copy];
     if ([self isViewLoaded]) {
         [[self view] setNeedsDisplay:YES];
     }
 }
-
-- (NSColor *)borderColor {
-    return borderColor;
-}
-
-
 
 - (void)setBackgroundColor:(NSColor *)color {
-    [backgroundColor autorelease];
-    backgroundColor = [color retain];
+    _backgroundColor = [color copy];
     if ([self isViewLoaded]) {
         [[self view] setNeedsDisplay:YES];
     }
-}
-
-- (NSColor *)backgroundColor {
-    return backgroundColor;
-}
-
-
-
-- (void)setBorderedEdges:(NSInteger)edges {
-    borderedEdges = edges;
-}
-
-- (NSInteger)borderedEdges {
-    return borderedEdges;
 }
 
 @end

@@ -7,8 +7,6 @@
 @interface DiffDocument : BaseDataDocument {
     HFByteArray *leftBytes, *rightBytes;
     HFByteArrayEditScript *editScript;
-    NSString *leftFileName;
-    NSString *rightFileName;
     IBOutlet HFTextView *leftTextView;
     IBOutlet HFTextView *rightTextView;
     IBOutlet NSTableView *diffTable;
@@ -36,16 +34,14 @@
 + (void)compareDocument:(BaseDataDocument *)document againstDocument:(BaseDataDocument *)otherDocument usingRange:(HFRange)range;
 + (void)compareFrontTwoDocuments;
 + (void)compareFrontTwoDocumentsUsingRange:(HFRange)range;
++ (void)compareByteArray:(HFByteArray *)leftBytes againstByteArray:(HFByteArray *)rightBytes usingRange:(HFRange)range leftFileName:(NSString *)leftFileName rightFileName:(NSString *)rightFileName;
 
-- (id)initWithLeftByteArray:(HFByteArray *)left rightByteArray:(HFByteArray *)right;
-- (id)initWithLeftByteArray:(HFByteArray *)left rightByteArray:(HFByteArray *)right range:(HFRange)range;
+- (instancetype)initWithLeftByteArray:(HFByteArray *)left rightByteArray:(HFByteArray *)right;
+- (instancetype)initWithLeftByteArray:(HFByteArray *)left rightByteArray:(HFByteArray *)right range:(HFRange)range;
 - (BOOL)handleEvent:(NSEvent *)event;
 
-- (void)setLeftFileName:(NSString *)leftName;
-- (NSString *)leftFileName;
-
-- (void)setRightFileName:(NSString *)rightName;
-- (NSString *)rightFileName;
+@property (nonatomic, copy) NSString *leftFileName;
+@property (nonatomic, copy) NSString *rightFileName;
 
 - (IBAction)scrollerDidChangeValue:(NSScroller *)scroller;
 

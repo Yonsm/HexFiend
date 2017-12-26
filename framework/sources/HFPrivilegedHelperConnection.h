@@ -8,6 +8,7 @@
 #import <Cocoa/Cocoa.h>
 #import "FortunateSonIPCTypes.h"
 
+NS_ASSUME_NONNULL_BEGIN
 
 struct HFProcessInfo_t {
     unsigned char bits; //either 32 or 64
@@ -17,7 +18,9 @@ struct HFProcessInfo_t {
     NSMachPort *childReceiveMachPort;
 }
 
-+ (HFPrivilegedHelperConnection *)sharedConnection;
+@property BOOL disabled; ///< When set, fail all requests as if the connection failed.
+
++ (instancetype)sharedConnection;
 - (BOOL)launchAndConnect:(NSError **)error;
 - (BOOL)connectIfNecessary;
 
@@ -29,3 +32,5 @@ struct HFProcessInfo_t {
 - (BOOL)openFileAtPath:(const char *)path writable:(BOOL)writable fileDescriptor:(int *)outFD error:(NSError **)error;
 
 @end
+
+NS_ASSUME_NONNULL_END

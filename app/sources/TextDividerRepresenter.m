@@ -60,7 +60,6 @@
 
 - (void)dealloc {
     HFUnregisterViewForWindowAppearanceChanges(self, registeredForAppNotifications);
-    [super dealloc];
 }
 
 @end

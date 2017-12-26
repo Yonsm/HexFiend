@@ -17,6 +17,8 @@
     Since a value of zero is nonsensical, we can use it to specify no spaces at all.
 */
 
+NS_ASSUME_NONNULL_BEGIN
+
 #define HFTV_BYTES_PER_COLUMN_MAX_VALUE (1 << (HFTV_BYTES_PER_COLUMN_BITFIELD_SIZE - 1))
 
 @class HFTextRepresenter;
@@ -27,9 +29,6 @@
 @private;
     HFTextRepresenter *representer;
     NSArray *cachedSelectedRanges;
-    NSFont *font;
-    NSData *data;
-    NSArray *styles;
     CGFloat verticalOffset;
     CGFloat horizontalContainerInset;
     CGFloat defaultLineHeight;
@@ -56,32 +55,20 @@
     } _hftvflags;
 }
 
-- (id)initWithRepresenter:(HFTextRepresenter *)rep;
+- (instancetype)initWithRepresenter:(HFTextRepresenter *)rep;
 - (void)clearRepresenter;
 
 - (HFTextRepresenter *)representer;
 
-- (NSFont *)font;
-- (void)setFont:(NSFont *)font;
+@property (nonatomic, copy) NSFont *font;
 
 /* Set and get data.  setData: will invalidate the correct regions (perhaps none) */
-- (NSData *)data;
-- (void)setData:(NSData *)data;
-
-- (CGFloat)verticalOffset;
-- (void)setVerticalOffset:(CGFloat)val;
-
-- (NSUInteger)startingLineBackgroundColorIndex;
-- (void)setStartingLineBackgroundColorIndex:(NSUInteger)val;
-
-- (BOOL)isEditable;
-- (void)setEditable:(BOOL)val;
-
-- (NSArray *)styles;
-- (void)setStyles:(NSArray *)theStyles;
-
-- (BOOL)shouldAntialias;
-- (void)setShouldAntialias:(BOOL)val;
+@property (nonatomic, copy) NSData *data;
+@property (nonatomic) CGFloat verticalOffset;
+@property (nonatomic) NSUInteger startingLineBackgroundColorIndex;
+@property (nonatomic, getter=isEditable) BOOL editable;
+@property (nullable, nonatomic, copy) NSArray *styles;
+@property (nonatomic) BOOL shouldAntialias;
 
 - (BOOL)behavesAsTextField;
 - (BOOL)showsFocusRing;
@@ -90,21 +77,18 @@
 - (NSRect)caretRect;
 
 - (void)setBookmarks:(NSDictionary *)bookmarks;
-- (BOOL)shouldDrawCallouts;
-- (void)setShouldDrawCallouts:(BOOL)val;
+@property (nonatomic) BOOL shouldDrawCallouts;
 
-- (void)setByteColoring:(void (^)(uint8_t byte, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a))coloring;
+- (void)setByteColoring:(nullable void (^)(uint8_t byte, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a))coloring;
 
 - (NSPoint)originForCharacterAtByteIndex:(NSInteger)index;
 - (NSUInteger)indexOfCharacterAtPoint:(NSPoint)point;
 
 /* The amount of padding space to inset from the left and right side. */
-- (CGFloat)horizontalContainerInset;
-- (void)setHorizontalContainerInset:(CGFloat)inset;
+@property (nonatomic) CGFloat horizontalContainerInset;
 
-/* Set the number of bytes between vertical guides.  Pass 0 to not draw the guides. */
-- (void)setBytesBetweenVerticalGuides:(NSUInteger)val;
-- (NSUInteger)bytesBetweenVerticalGuides;
+/* The number of bytes between vertical guides. 0 means no drawing of guides. */
+@property (nonatomic) NSUInteger bytesBetweenVerticalGuides;
 
 /* To be invoked from drawRect:. */
 - (void)drawCaretIfNecessaryWithClip:(NSRect)clipRect;
@@ -116,12 +100,12 @@
 /* Uniformly "rounds" the byte range so that it contains an integer number of characters.  The algorithm is to "floor:" any character intersecting the min of the range are included, and any character extending beyond the end of the range is excluded. If both the min and the max are within a single character, then an empty range is returned. */
 - (NSRange)roundPartialByteRange:(NSRange)byteRange;
 
-- (void)drawTextWithClip:(NSRect)clipRect restrictingToTextInRanges:(NSArray *)restrictingToRanges;
+- (void)drawTextWithClip:(NSRect)clipRect restrictingToTextInRanges:(nullable NSArray *)restrictingToRanges;
 
 /* Must be overridden */
 - (void)extractGlyphsForBytes:(const unsigned char *)bytes count:(NSUInteger)numBytes offsetIntoLine:(NSUInteger)offsetIntoLine intoArray:(struct HFGlyph_t *)glyphs advances:(CGSize *)advances resultingGlyphCount:(NSUInteger *)resultGlyphCount;
 
-- (void)extractGlyphsForBytes:(const unsigned char *)bytePtr range:(NSRange)byteRange intoArray:(struct HFGlyph_t *)glyphs advances:(CGSize *)advances withInclusionRanges:(NSArray *)restrictingToRanges initialTextOffset:(CGFloat *)initialTextOffset resultingGlyphCount:(NSUInteger *)resultingGlyphCount;
+- (void)extractGlyphsForBytes:(const unsigned char *)bytePtr range:(NSRange)byteRange intoArray:(struct HFGlyph_t *)glyphs advances:(CGSize *)advances withInclusionRanges:(NSArray *)restrictingToRanges initialTextOffset:(CGFloat *)initialTextOffset resultingGlyphCount:(nullable NSUInteger *)resultingGlyphCount;
 
 /* Must be overridden - returns the max number of glyphs for a given number of bytes */
 - (NSUInteger)maximumGlyphCountForByteCount:(NSUInteger)byteCount;
@@ -135,7 +119,7 @@
 - (NSRect)furthestRectOnEdge:(NSRectEdge)edge forRange:(NSRange)range;
 
 /* The background color for the line at the given index.  You may override this to return different colors.  You may return nil to draw no color in this line (and then the empty space color will appear) */
-- (NSColor *)backgroundColorForLine:(NSUInteger)line;
+- (nullable NSColor *)backgroundColorForLine:(NSUInteger)line;
 - (NSColor *)backgroundColorForEmptySpace;
 
 /* Defaults to 1, may override */
@@ -164,3 +148,5 @@
 
 
 @end
+
+NS_ASSUME_NONNULL_END

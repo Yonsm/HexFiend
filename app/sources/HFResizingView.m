@@ -14,17 +14,12 @@
     if (! hasAwokenFromNib) {
         hasAwokenFromNib = YES;
         defaultSize = [self frame].size;
-        viewsToInitialFrames = (__strong CFMutableDictionaryRef)CFMakeCollectable(CFDictionaryCreateMutable(NULL, 0, NULL, &kCFTypeDictionaryValueCallBacks));
+        viewsToInitialFrames = [NSMapTable weakToStrongObjectsMapTable];
         
-        FOREACH(NSView *, subview, [self subviews]) {
-            CFDictionarySetValue(viewsToInitialFrames, subview, [NSValue valueWithRect:[subview frame]]);
+        for(NSView *subview in [self subviews]) {
+            [viewsToInitialFrames setObject:[NSValue valueWithRect:[subview frame]] forKey:subview];
         }
     }
-}
-
-- (void)dealloc {
-    CFRelease(viewsToInitialFrames);
-    [super dealloc];
 }
 
 typedef struct { CGFloat offset; CGFloat length; } Position_t;
@@ -94,8 +89,8 @@ static Position_t computePosition(id view, CGFloat startOffset, CGFloat startWid
     USE(size);
     NSRect bounds = [self bounds];
     if (viewsToInitialFrames) {
-        FOREACH(NSView *, view, [self subviews]) {
-            NSValue *originalFrameValue = (NSValue *)CFDictionaryGetValue(viewsToInitialFrames, view);
+        for(NSView *view in [self subviews]) {
+            NSValue *originalFrameValue = [viewsToInitialFrames objectForKey:view];
             if (originalFrameValue) 
                 [self resizeView:view withOriginalFrame:[originalFrameValue rectValue] intoBounds:bounds];
         }

@@ -15,7 +15,7 @@
 /* No special NSCoding support needed */
 
 - (NSView *)createView {
-    NSScroller *scroller = [[NSScroller alloc] initWithFrame:NSMakeRect(0, 0, [NSScroller scrollerWidthForControlSize:NSRegularControlSize], 64)];
+    NSScroller *scroller = [[NSScroller alloc] initWithFrame:NSMakeRect(0, 0, [NSScroller scrollerWidthForControlSize:NSRegularControlSize scrollerStyle:NSScrollerStyleLegacy], 64)];
     [scroller setTarget:self];
     [scroller setContinuous:YES];
     [scroller setEnabled:YES];
@@ -74,7 +74,7 @@
 	case NSScrollerIncrementPage: [self scrollByLines: (long long)[self visibleLines]]; break;
 	case NSScrollerDecrementLine: [self scrollByLines: -1LL]; break;
 	case NSScrollerIncrementLine: [self scrollByLines: 1LL]; break;
-	case NSScrollerKnob: [self scrollByKnobToValue:(HFIsRunningOnLeopardOrLater() ? [scroller doubleValue] : [scroller floatValue])]; break;
+	case NSScrollerKnob: [self scrollByKnobToValue:[scroller doubleValue]]; break;
 	default: break;
     }
 }
@@ -120,7 +120,7 @@
 
 - (CGFloat)minimumViewWidthForBytesPerLine:(NSUInteger)bytesPerLine {
     USE(bytesPerLine);
-    return [NSScroller scrollerWidthForControlSize:[[self view] controlSize]];
+    return [NSScroller scrollerWidthForControlSize:[[self view] controlSize] scrollerStyle:NSScrollerStyleLegacy];
 }
 
 - (void)controllerDidChange:(HFControllerPropertyBits)bits {

@@ -27,7 +27,7 @@
 @implementation HFStatusBarView
 
 - (void)_sharedInitStatusBarView {
-    NSMutableParagraphStyle *style = [[[NSParagraphStyle defaultParagraphStyle] mutableCopy] autorelease];
+    NSMutableParagraphStyle *style = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
     [style setAlignment:NSCenterTextAlignment];
     cellAttributes = [[NSDictionary alloc] initWithObjectsAndKeys:[NSColor colorWithCalibratedWhite:(CGFloat).15 alpha:1], NSForegroundColorAttributeName, [NSFont labelFontOfSize:10], NSFontAttributeName, style, NSParagraphStyleAttributeName, nil];
     cell = [[NSCell alloc] initTextCell:@""];
@@ -35,13 +35,13 @@
     [cell setBackgroundStyle:NSBackgroundStyleRaised];
 }
 
-- (id)initWithFrame:(NSRect)frame {
+- (instancetype)initWithFrame:(NSRect)frame {
     self = [super initWithFrame:frame];
     [self _sharedInitStatusBarView];
     return self;
 }
 
-- (id)initWithCoder:(NSCoder *)coder {
+- (instancetype)initWithCoder:(NSCoder *)coder {
     HFASSERT([coder allowsKeyedCoding]);
     self = [super initWithCoder:coder];
     [self _sharedInitStatusBarView];
@@ -57,7 +57,7 @@
 }
 
 - (void)setString:(NSString *)string {
-    [cell setAttributedStringValue:[[[NSAttributedString alloc] initWithString:string attributes:cellAttributes] autorelease]];
+    [cell setAttributedStringValue:[[NSAttributedString alloc] initWithString:string attributes:cellAttributes]];
     cellSize = [cell cellSize];
     [self setNeedsDisplay:YES];
 }
@@ -132,9 +132,6 @@
 
 - (void)dealloc {
     HFUnregisterViewForWindowAppearanceChanges(self, registeredForAppNotifications);
-    [cell release];
-    [cellAttributes release];
-    [super dealloc];
 }
 
 @end
@@ -147,14 +144,14 @@
     [coder encodeInt64:statusMode forKey:@"HFStatusMode"];
 }
 
-- (id)initWithCoder:(NSCoder *)coder {
+- (instancetype)initWithCoder:(NSCoder *)coder {
     HFASSERT([coder allowsKeyedCoding]);
     self = [super initWithCoder:coder];
     statusMode = (NSUInteger)[coder decodeInt64ForKey:@"HFStatusMode"];
     return self;
 }
 
-- (id)init {
+- (instancetype)init {
     self = [super init];
     statusMode = [[NSUserDefaults standardUserDefaults] integerForKey:kHFStatusBarDefaultModeUserDefaultsKey];
     return self;
@@ -220,7 +217,7 @@
         NSArray *ranges = [controller selectedContentsRanges];
         NSUInteger rangeCount = [ranges count];
         if (rangeCount == 1) {
-            HFRange range = [[ranges objectAtIndex:0] HFRange];
+            HFRange range = [ranges[0] HFRange];
             if (range.length == 0) {
                 string = [self stringForEmptySelectionAtOffset:range.location length:length];
             }
@@ -233,7 +230,7 @@
         }
         else {
             unsigned long long totalSelectionLength = 0;
-            FOREACH(HFRangeWrapper *, wrapper, ranges) {
+            for(HFRangeWrapper * wrapper in ranges) {
                 HFRange range = [wrapper HFRange];
                 totalSelectionLength = HFSum(totalSelectionLength, range.length);
             }
@@ -244,11 +241,11 @@
     [[self view] setString:string];
 }
 
-- (NSUInteger)statusMode {
+- (HFStatusBarMode)statusMode {
     return statusMode;
 }
 
-- (void)setStatusMode:(NSUInteger)mode {
+- (void)setStatusMode:(HFStatusBarMode)mode {
     statusMode = mode;
     [self updateString];
 }

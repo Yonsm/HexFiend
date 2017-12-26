@@ -11,12 +11,10 @@
 
 @interface HFDocumentOperationView : HFResizingView {
     NSString *nibName;
-    NSString *displayName;
     BOOL awokenFromNib;
     id threadResult;
     dispatch_group_t waitGroup;
 
-    id (^startBlock)(HFProgressTracker *tracker);
     void (^completionHandler)(id result);
     
     IBOutlet NSProgressIndicator *progressIndicator;
@@ -36,11 +34,8 @@
 
 - (CGFloat)defaultHeight;
 
-- (BOOL)isFixedHeight;
-- (void)setIsFixedHeight:(BOOL)val;
-
-- (NSString *)displayName;
-- (void)setDisplayName:(NSString *)name;
+@property (nonatomic) BOOL isFixedHeight;
+@property (nonatomic, copy) NSString *displayName;
 
 - (IBAction)cancelViewOperation:sender;
 

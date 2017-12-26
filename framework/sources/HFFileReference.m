@@ -16,8 +16,6 @@
 #import "HFPrivilegedHelperConnection.h"
 #endif
 
-#define USE_STAT64 0
-
 /* The return code is just to quiet the static analyzer */
 static BOOL returnReadError(NSError **error) {
     if (! error) return NO;
@@ -42,7 +40,6 @@ static BOOL returnReadError(NSError **error) {
 static BOOL returnUnsupportedFileTypeError(NSError **error, mode_t mode) {
     if (! error) return NO;
     
-    printf("TYPE: %o\n", mode);
     NSString *fileType;
     
     
@@ -68,7 +65,7 @@ static BOOL returnUnsupportedFileTypeError(NSError **error, mode_t mode) {
         fileType = [NSString stringWithFormat:@"unknown type (mode 0x%lx)", (long)mode];
     }
     NSString *errorDescription = [NSString stringWithFormat:@"The file is a %@ which is not a supported type.", fileType];
-    NSDictionary *errorDict = [NSDictionary dictionaryWithObjectsAndKeys:errorDescription, NSLocalizedDescriptionKey, nil];
+    NSDictionary *errorDict = @{NSLocalizedFailureReasonErrorKey: errorDescription};
     *error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadUnknownError userInfo:errorDict];
     return NO;
 }
@@ -76,7 +73,7 @@ static BOOL returnUnsupportedFileTypeError(NSError **error, mode_t mode) {
 static BOOL returnFortunateSonError(NSError **error) {
     if (! error) return NO;
     NSString *errorDescription = @"There was an error communicating with the privileged helper process.";
-    NSDictionary *errorDict = [NSDictionary dictionaryWithObjectsAndKeys:errorDescription, NSLocalizedDescriptionKey, nil];
+    NSDictionary *errorDict = @{NSLocalizedFailureReasonErrorKey: errorDescription};
     *error = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadUnknownError userInfo:errorDict];    
     return NO;
 }
@@ -155,38 +152,30 @@ static BOOL returnFTruncateError(NSError **error) {
     
 }
 
-- (id)initWithPath:(NSString *)path error:(NSError **)error {
+- (instancetype)initWithPath:(NSString *)path error:(NSError **)error {
     self = [super init];
     isWritable = NO;
     fileDescriptor = -1;
     if (! ([self initSharedWithPath:path error:error] && [self validateWithError:error])) {
         [self close];
-        [self release];
         self = nil;
     }
     return self;
 }
 
-- (id)initWritableWithPath:(NSString *)path error:(NSError **)error{
+- (instancetype)initWritableWithPath:(NSString *)path error:(NSError **)error{
     self = [super init];
     isWritable = YES;
     fileDescriptor = -1;
     if (! ([self initSharedWithPath:path error:error] && [self validateWithError:error])) {
         [self close];
-        [self release];
         self = nil;
     }
     return self;
 }
 
-- (void)finalize {
-    [self close];
-    [super finalize];
-}
-
 - (void)dealloc {
     [self close];
-    [super dealloc];
 }
 
 @end
@@ -198,7 +187,7 @@ static BOOL returnFTruncateError(NSError **error) {
     REQUIRE_NOT_NULL(path);
     const char* p = [path fileSystemRepresentation];
     if (isWritable) {
-        fileDescriptor = open(p, O_RDWR | O_CREAT, 0744);
+        fileDescriptor = open(p, O_RDWR | O_CREAT, 0644);
     }
     else {
         fileDescriptor = open(p, O_RDONLY, 0);
@@ -219,17 +208,14 @@ static BOOL returnFTruncateError(NSError **error) {
         returnReadError(error);
         return NO;
     }
-#if USE_STAT64
-    struct stat64 sb;
-    result = fstat64(fileDescriptor, &sb);
-#else
+
     struct stat sb;
     result = fstat(fileDescriptor, &sb);
-#endif
+
     if (result != 0) {
         int err = errno;
         returnReadError(error);
-        NSLog(@"Unable to fstat64 file %@. %s.", path, strerror(err));
+        NSLog(@"Unable to fstat file %@. %s.", path, strerror(err));
         return NO;
     }
 

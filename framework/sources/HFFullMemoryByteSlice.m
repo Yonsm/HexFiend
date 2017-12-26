@@ -10,21 +10,16 @@
 
 @implementation HFFullMemoryByteSlice
 
-- (id)initWithData:(NSData *)val {
+- (instancetype)initWithData:(NSData *)val {
     REQUIRE_NOT_NULL(val);
     self = [super init];
     data = [val copy];
     return self;
 }
 
-- (void)dealloc {
-    [data release];
-    [super dealloc];
-}
-
 - (unsigned long long)length { return [data length]; }
 
-- (void)copyBytes:(unsigned char *)dst range:(HFRange)lrange  {
+- (void)copyBytes:(unsigned char *)dst range:(HFRange)lrange {
     NSRange range;
     HFASSERT(lrange.location <= NSUIntegerMax);
     HFASSERT(lrange.length <= NSUIntegerMax);
@@ -40,7 +35,7 @@
     HFASSERT([self length] - range.location >= range.length);
     HFASSERT(range.location <= NSUIntegerMax);
     HFASSERT(range.length <= NSUIntegerMax);
-    return [[[[self class] alloc] initWithData:[data subdataWithRange:NSMakeRange(ll2l(range.location), ll2l(range.length))]] autorelease];
+    return [[[self class] alloc] initWithData:[data subdataWithRange:NSMakeRange(ll2l(range.location), ll2l(range.length))]];
 }
 
 @end

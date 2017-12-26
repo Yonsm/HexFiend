@@ -16,7 +16,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+@interface AppDelegate ()
+
+@property BOOL parsedCommandLineArgs;
+@property NSArray *filesToOpen;
+@property NSString *diffLeftFile;
+@property NSString *diffRightFile;
+
+@end
+
 @implementation AppDelegate
+{
+    NSWindowController *_prefs;
+}
 
 - (void)applicationWillFinishLaunching:(NSNotification *)note {
     USE(note);
@@ -39,6 +51,32 @@
     [extendBackwardsItem setKeyEquivalentModifierMask:[extendBackwardsItem keyEquivalentModifierMask] | NSShiftKeyMask];
     [extendForwardsItem setKeyEquivalent:@"]"];
     [extendBackwardsItem setKeyEquivalent:@"["];	
+
+    [self processCommandLineArguments];
+
+    [[NSDistributedNotificationCenter defaultCenter] addObserverForName:@"HFOpenFileNotification" object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+        NSDictionary *userInfo = notification.userInfo;
+        NSArray *files = [userInfo objectForKey:@"files"];
+        if ([files isKindOfClass:[NSArray class]]) {
+            for (NSString *file in files) {
+                if ([file isKindOfClass:[NSString class]]) {
+                    [self openFile:file];
+                }
+            }
+        }
+    }];
+
+    [[NSDistributedNotificationCenter defaultCenter] addObserverForName:@"HFDiffFilesNotification" object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+        NSDictionary *userInfo = notification.userInfo;
+        NSArray *files = [userInfo objectForKey:@"files"];
+        if ([files isKindOfClass:[NSArray class]] && files.count == 2) {
+            NSString *file1 = [files objectAtIndex:0];
+            NSString *file2 = [files objectAtIndex:1];
+            if ([file1 isKindOfClass:[NSString class]] && [file2 isKindOfClass:[NSString class]]) {
+                [self compareLeftFile:file1 againstRightFile:file2];
+            }
+        }
+    }];
 }
 
 static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *unused) {
@@ -48,21 +86,20 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
 
 - (void)buildFontMenu:unused {
     USE(unused);
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    @autoreleasepool {
     NSFontManager *manager = [NSFontManager sharedFontManager];
     NSCharacterSet *minimumRequiredCharacterSet;
     NSMutableCharacterSet *minimumCharacterSetMutable = [[NSMutableCharacterSet alloc] init];
     [minimumCharacterSetMutable addCharactersInRange:NSMakeRange('0', 10)];
     [minimumCharacterSetMutable addCharactersInRange:NSMakeRange('a', 26)];
     [minimumCharacterSetMutable addCharactersInRange:NSMakeRange('A', 26)];
-    minimumRequiredCharacterSet = [[minimumCharacterSetMutable copy] autorelease];
-    [minimumCharacterSetMutable release];
+    minimumRequiredCharacterSet = [minimumCharacterSetMutable copy];
     
     NSMutableSet *fontNames = [NSMutableSet setWithArray:[manager availableFontNamesWithTraits:NSFixedPitchFontMask]];
     [fontNames minusSet:[NSSet setWithArray:[manager availableFontNamesWithTraits:NSFixedPitchFontMask | NSBoldFontMask]]];
     [fontNames minusSet:[NSSet setWithArray:[manager availableFontNamesWithTraits:NSFixedPitchFontMask | NSItalicFontMask]]];
     NSMutableArray *fonts = [NSMutableArray arrayWithCapacity:[fontNames count]];
-    FOREACH(NSString *, fontName, fontNames) {
+    for(NSString *fontName in fontNames) {
         NSFont *font = [NSFont fontWithName:fontName size:0];
         NSString *displayName = [font displayName];
         if (! [displayName length]) continue;
@@ -72,22 +109,27 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
         [fonts addObject:font];
     }
     [fonts sortUsingFunction:compareFontDisplayNames context:NULL];
-    [self performSelectorOnMainThread:@selector(receiveFonts:) withObject:fonts waitUntilDone:NO modes:[NSArray arrayWithObjects:NSDefaultRunLoopMode, NSEventTrackingRunLoopMode, nil]];
-    [pool drain];
+    [self performSelectorOnMainThread:@selector(receiveFonts:) withObject:fonts waitUntilDone:NO modes:@[NSDefaultRunLoopMode, NSEventTrackingRunLoopMode]];
+    } // @autoreleasepool
+    
 }
 
 - (void)receiveFonts:(NSArray *)fonts {
     NSMenu *menu = [fontMenuItem submenu];
     [menu removeItemAtIndex:0];
     NSUInteger itemIndex = 0;
-    FOREACH(NSFont *, font, fonts) {
+    for(NSFont *font in fonts) {
         NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:[font displayName] action:@selector(setFontFromMenuItem:) keyEquivalent:@""];
+        NSDictionary *attrs = @{
+            NSFontAttributeName: font,
+        };
+        NSAttributedString *astr = [[NSAttributedString alloc] initWithString:[font displayName] attributes:attrs];
+        [item setAttributedTitle:astr];
         [item setRepresentedObject:font];
         [item setTarget:self];
         [menu insertItem:item atIndex:itemIndex++];
         /* Validate the menu item in case the menu is currently open, so it gets the right check */
         [self validateMenuItem:item];
-        [item release];
     }
 }
 
@@ -115,9 +157,15 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
     else if (sel == @selector(diffFrontDocuments:)) {
         NSArray *docs = [DiffDocument getFrontTwoDocumentsForDiffing];
         if (docs) {
+<<<<<<< HEAD
             NSString *firstTitle = [[docs objectAtIndex:0] displayName];
             NSString *secondTitle = [[docs objectAtIndex:1] displayName];
             [item setTitle:[NSString stringWithFormat:NSLocalizedString(@"Compare \u201C%@\u201D and \u201C%@\u201D", @"比较 \u201C%@\u201D 和 \u201C%@\u201D"), firstTitle, secondTitle]];
+=======
+            NSString *firstTitle = [docs[0] displayName];
+            NSString *secondTitle = [docs[1] displayName];
+            [item setTitle:[NSString stringWithFormat:@"Compare \u201C%@\u201D and \u201C%@\u201D", firstTitle, secondTitle]];
+>>>>>>> ridiculousfish/master
             return YES;
         }
         else {
@@ -128,9 +176,15 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
     } else if (sel == @selector(diffFrontDocumentsByRange:)) {
         NSArray *docs = [DiffDocument getFrontTwoDocumentsForDiffing];
         if (docs) {
+<<<<<<< HEAD
             NSString *firstTitle = [[docs objectAtIndex:0] displayName];
             NSString *secondTitle = [[docs objectAtIndex:1] displayName];
             [item setTitle:[NSString stringWithFormat:NSLocalizedString(@"区域比较 \u201C%@\u201D 和 \u201C%@\u201D", @""), firstTitle, secondTitle]];
+=======
+            NSString *firstTitle = [docs[0] displayName];
+            NSString *secondTitle = [docs[1] displayName];
+            [item setTitle:[NSString stringWithFormat:@"Compare Range of \u201C%@\u201D and \u201C%@\u201D", firstTitle, secondTitle]];
+>>>>>>> ridiculousfish/master
             return YES;
         }
         else {
@@ -151,7 +205,6 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
     USE(sender);
     DiffRangeWindowController* range = [[DiffRangeWindowController alloc] initWithWindowNibName:@"DiffRangeDialog"];
     [range showWindow:self];
-    [range release];
 }
 
 - (void)menuNeedsUpdate:(NSMenu *)menu {
@@ -163,12 +216,11 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
             for(NSMenuItem *bm in bookmarksMenuItems) {
                 [bookmarksMenu removeItem:bm];
             }
-            [bookmarksMenuItems release];
             bookmarksMenuItems = nil;
         }
         
         if ([currentDocument respondsToSelector:@selector(copyBookmarksMenuItems)]) {
-            bookmarksMenuItems = [currentDocument performSelector:@selector(copyBookmarksMenuItems)];
+            bookmarksMenuItems = [(BaseDataDocument*)currentDocument copyBookmarksMenuItems];
             if(bookmarksMenuItems) {
                 NSInteger index = [bookmarksMenu indexOfItem:noBookmarksMenuItem];
                 for(NSMenuItem *bm in bookmarksMenuItems) {
@@ -210,6 +262,77 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
 
 - (IBAction)setStringEncodingFromMenuItem:(NSMenuItem *)item {
     [self setStringEncoding:[item tag]];
+}
+
+- (IBAction)openPreferences:(id)sender {
+    if (!_prefs) {
+        _prefs = [[NSWindowController alloc] initWithWindowNibName:@"Preferences"];
+    }
+    [_prefs showWindow:sender];
+}
+
+- (void)parseCommandLineArguments {
+    if (!self.parsedCommandLineArgs) {
+        NSMutableArray *filesToOpen = [NSMutableArray array];
+        NSArray *args = [[NSProcessInfo processInfo] arguments];
+        // first argument is process path
+        if (args.count > 1 && (args.count - 1) % 2 == 0) {
+            for (NSUInteger i = 1; i < args.count; i += 2) {
+                NSString *arg = args[i];
+                if ([arg isEqualToString:@"-HFOpenFile"]) {
+                    [filesToOpen addObject:args[i + 1]];
+                } else if ([arg isEqualToString:@"-HFDiffLeftFile"]) {
+                    self.diffLeftFile = args[i + 1];
+                } else if ([arg isEqualToString:@"-HFDiffRightFile"]) {
+                    self.diffRightFile = args[i + 1];
+                }
+            }
+        }
+        self.filesToOpen = filesToOpen;
+        self.parsedCommandLineArgs = YES;
+    }
+}
+
+- (void)processCommandLineArguments {
+    [self parseCommandLineArguments];
+    for (NSString *path in self.filesToOpen) {
+        [self openFile:path];
+    }
+    if (self.diffLeftFile && self.diffRightFile) {
+        [self compareLeftFile:self.diffLeftFile againstRightFile:self.diffRightFile];
+    }
+}
+
+- (void)openFile:(NSString *)path {
+    NSURL *url = [NSURL fileURLWithPath:path];
+    NSDocumentController *dc = [NSDocumentController sharedDocumentController];
+    if ([url checkResourceIsReachableAndReturnError:nil]) {
+        // Open existing file
+        [dc openDocumentWithContentsOfURL:url display:YES completionHandler:^(NSDocument * document __unused, BOOL documentWasAlreadyOpen __unused, NSError * error __unused) {
+        }];
+    } else {
+        // Open new document for file
+        NSDocument *doc = [dc openUntitledDocumentAndDisplay:YES error:nil];
+        doc.fileURL = url;
+    }
+}
+
+- (BOOL)applicationShouldOpenUntitledFile:(NSApplication * __unused)sender {
+    [self parseCommandLineArguments];
+    return self.filesToOpen.count == 0 && (!self.diffLeftFile || !self.diffRightFile);
+}
+
+- (void)compareLeftFile:(NSString *)leftFile againstRightFile:(NSString *)rightFile {
+    NSError *err = nil;
+    HFByteArray *array1 = [BaseDataDocument byteArrayfromURL:[NSURL fileURLWithPath:leftFile] error:&err];
+    HFByteArray *array2 = [BaseDataDocument byteArrayfromURL:[NSURL fileURLWithPath:rightFile] error:&err];
+    if (array1 && array2) {
+        [DiffDocument compareByteArray:array1
+                      againstByteArray:array2
+                            usingRange:HFRangeMake(0, 0)
+                          leftFileName:[[leftFile lastPathComponent] stringByDeletingPathExtension]
+                         rightFileName:[[rightFile lastPathComponent] stringByDeletingPathExtension]];
+    }
 }
 
 @end
