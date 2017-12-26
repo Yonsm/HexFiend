@@ -34,8 +34,8 @@ static NSString *promptForValue(NSString *promptText) {
     NSAlert *alert = [[NSAlert alloc] init];
     alert.messageText = promptText;
     alert.informativeText = @"";
-    [alert addButtonWithTitle:NSLocalizedString(@"OK", "")];
-    [alert addButtonWithTitle:NSLocalizedString(@"Cancel", "")];
+    [alert addButtonWithTitle:NSLocalizedString(@"OK", "确定")];
+    [alert addButtonWithTitle:NSLocalizedString(@"Cancel", "取消")];
     NSTextField *textField = [[NSTextField alloc] init];
     [textField sizeToFit];
     NSRect frame = textField.frame;

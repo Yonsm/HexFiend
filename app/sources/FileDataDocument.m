@@ -33,13 +33,10 @@ static inline Class preferredByteArrayClass(void) {
         if ([fileReference isPrivileged])
             [controller setEditMode:HFReadOnlyMode];
         else {
-<<<<<<< HEAD
             // If the file is > 64 MB in size, default to starting in overwrite mode
             //[Yonsm: Default overite mode] if ([fileReference length] > 64 * 1024 * 1024)
                 [controller setEditMode:HFOverwriteMode];
-=======
             [controller setEditMode:[[NSUserDefaults standardUserDefaults] integerForKey:@"DefaultEditMode"]];
->>>>>>> ridiculousfish/master
         }
     }
 

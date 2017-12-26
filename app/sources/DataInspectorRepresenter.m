@@ -387,18 +387,11 @@ static id floatingPointDescription(const unsigned char *bytes, NSUInteger length
     }
 }
 
-<<<<<<< HEAD
 #define InspectionErrorNoData		NSLocalizedString(@"(select some data)", @"(选择一些数据)")
 #define InspectionErrorTooMuch		NSLocalizedString(@"(select less data)", @"(选择更少数据)")
 #define InspectionErrorTooLittle	NSLocalizedString(@"(select more data)", @"(选择更多数据)")
 #define InspectionErrorNonPwr2		NSLocalizedString(@"(select a power of 2 bytes)", @"(选择 2^n 个字节)")
-=======
-static NSString * const InspectionErrorNoData =  @"(select some data)";
-static NSString * const InspectionErrorTooMuch = @"(select less data)";
-static NSString * const InspectionErrorTooLittle = @"(select more data)";
-static NSString * const InspectionErrorNonPwr2 = @"(select a power of 2 bytes)";
-static NSString * const InspectionErrorInternal = @"(internal error)";
->>>>>>> ridiculousfish/master
+#define InspectionErrorInternal		NSLocalizedString(@"(internal error)", @"(内部错误)")
 
 static NSAttributedString *inspectionError(NSString *s) {
     NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
@@ -448,11 +441,7 @@ static NSAttributedString *inspectionError(NSString *s) {
             break;
         default:
             if(outIsError) *outIsError = YES;
-<<<<<<< HEAD
-            return inspectionError(NSLocalizedString(@"(internal error)", @"内部错误"));
-=======
             return inspectionError(InspectionErrorInternal);
->>>>>>> ridiculousfish/master
     }
     
     return [self valueForData:[controller dataForRange:range] isError:outIsError];
@@ -497,18 +486,6 @@ static NSAttributedString *inspectionError(NSString *s) {
         case eInspectorTypeUTF8Text: {
             if(length == 0) return inspectionError(InspectionErrorNoData);
             if(length > MAX_EDITABLE_BYTE_COUNT) return inspectionError(InspectionErrorTooMuch);
-<<<<<<< HEAD
-            NSString *ret = [[[NSString alloc] initWithBytes:bytes length:length encoding:NSUTF8StringEncoding] autorelease];
-            if(ret == nil) return inspectionError(NSLocalizedString(@"(bytes are not valid UTF-8)", @"(不是有效的 UTF-8)"));
-            if(outIsError) *outIsError = NO;
-            return ret;
-        }
-        
-        default:
-            return inspectionError(NSLocalizedString(@"(internal error)", @"内部错误"));
-    }
-}
-=======
             NSString *ret = [[NSString alloc] initWithBytes:bytes length:length encoding:NSUTF8StringEncoding];
             if(ret == nil) return inspectionError(@"(bytes are not valid UTF-8)");
             if(outIsError) *outIsError = NO;
@@ -519,7 +496,6 @@ static NSAttributedString *inspectionError(NSString *s) {
             
             for (NSUInteger i = 0; i < length; ++i) {
                 char input = bytes[i];
->>>>>>> ridiculousfish/master
 
                 char binary[] = "00000000";
                 

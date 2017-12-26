@@ -157,15 +157,9 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
     else if (sel == @selector(diffFrontDocuments:)) {
         NSArray *docs = [DiffDocument getFrontTwoDocumentsForDiffing];
         if (docs) {
-<<<<<<< HEAD
-            NSString *firstTitle = [[docs objectAtIndex:0] displayName];
-            NSString *secondTitle = [[docs objectAtIndex:1] displayName];
-            [item setTitle:[NSString stringWithFormat:NSLocalizedString(@"Compare \u201C%@\u201D and \u201C%@\u201D", @"比较 \u201C%@\u201D 和 \u201C%@\u201D"), firstTitle, secondTitle]];
-=======
             NSString *firstTitle = [docs[0] displayName];
             NSString *secondTitle = [docs[1] displayName];
-            [item setTitle:[NSString stringWithFormat:@"Compare \u201C%@\u201D and \u201C%@\u201D", firstTitle, secondTitle]];
->>>>>>> ridiculousfish/master
+            [item setTitle:[NSString stringWithFormat:NSLocalizedString(@"Compare \u201C%@\u201D and \u201C%@\u201D", @"比较 \u201C%@\u201D 和 \u201C%@\u201D"), firstTitle, secondTitle]];
             return YES;
         }
         else {
@@ -176,15 +170,9 @@ static NSComparisonResult compareFontDisplayNames(NSFont *a, NSFont *b, void *un
     } else if (sel == @selector(diffFrontDocumentsByRange:)) {
         NSArray *docs = [DiffDocument getFrontTwoDocumentsForDiffing];
         if (docs) {
-<<<<<<< HEAD
-            NSString *firstTitle = [[docs objectAtIndex:0] displayName];
-            NSString *secondTitle = [[docs objectAtIndex:1] displayName];
-            [item setTitle:[NSString stringWithFormat:NSLocalizedString(@"区域比较 \u201C%@\u201D 和 \u201C%@\u201D", @""), firstTitle, secondTitle]];
-=======
             NSString *firstTitle = [docs[0] displayName];
             NSString *secondTitle = [docs[1] displayName];
-            [item setTitle:[NSString stringWithFormat:@"Compare Range of \u201C%@\u201D and \u201C%@\u201D", firstTitle, secondTitle]];
->>>>>>> ridiculousfish/master
+           [item setTitle:[NSString stringWithFormat:NSLocalizedString(@"区域比较 \u201C%@\u201D 和 \u201C%@\u201D", @""), firstTitle, secondTitle]];
             return YES;
         }
         else {
